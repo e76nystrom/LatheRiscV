@@ -1,7 +1,7 @@
-#include <string.h>
 #define LATHECPP_REM_CMD
 
 #include <neorv32.h>
+#include <string.h>
 #include <stdbool.h>
 #include "ctlStates.h"
 #include "ctlbits.h"
@@ -10,7 +10,6 @@
 #include "axisCtl.h"
 #include "remSerial.h"
 #include "remCmd.h"
-#include "riscvParmList.h"
 #include "riscvStruct.h"
 
 #if defined(REM_CMD_INCLUDE)	// <-
@@ -299,7 +298,7 @@ void remCmd(void)
    T_DATA_UNION val;
    getRiscvVar(val1, &val);
    rspPutByte(parm);
-   rspPutHex(val.t_int32_t, riscvParm[parm]);
+   rspPutHex(val.t_int32_t, riscvSize[parm]);
   }
   break;
 

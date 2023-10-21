@@ -1,18 +1,29 @@
 #include <stdint.h>
 #define NO_REM_MACROS
-#include "riscvParmList.h"
-
+#include "riscvParm.h"
 #include "riscvStruct.h"
 
 T_RISCV_VAR rVar;
 
-void setRiscvVar(int parm, T_DATA_UNION val);
-void getRiscvVar(int parm, P_DATA_UNION val);
+#define FLT (0x80)
+#define SIZE_MASK (0x7)
+
+unsigned char riscvSize[] =
+{
+ sizeof(rVar.rParmRpm),                 /* 0x00  */
+ sizeof(rVar.rParmXLoc),                /* 0x01  */
+ sizeof(rVar.rParmZLoc),                /* 0x02  */
+ sizeof(rVar.rParmXDro),                /* 0x03  */
+ sizeof(rVar.rParmZDro),                /* 0x04  */
+};
 
 void setRiscvVar(int parm, T_DATA_UNION val)
 {
  switch(parm)
  {
+ default:
+  break;
+
  case R_PARM_RPM:                /*  0 0x00  */
   rVar.rParmRpm = val.t_int;
   break;
@@ -33,13 +44,16 @@ void setRiscvVar(int parm, T_DATA_UNION val)
   rVar.rParmZDro = val.t_int;
   break;
 
- };
+ }
 }
 
 void getRiscvVar(int parm, P_DATA_UNION val)
 {
  switch(parm)
  {
+ default:
+  break;
+
  case R_PARM_RPM:                /*  0 0x00  */
   val->t_int = rVar.rParmRpm;
   break;
@@ -60,5 +74,5 @@ void getRiscvVar(int parm, P_DATA_UNION val)
   val->t_int = rVar.rParmZDro;
   break;
 
- };
+ }
 }

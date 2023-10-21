@@ -44,12 +44,12 @@ add_link_options(-nostartfiles)
 add_link_options(-T ${LINKER_SCRIPT})
 
 set(SOURCES
+        axisCtl.c
+        fpga.c
         Lathe.c
         remCmd.c
         remSerial.c
-        axisCtl.c
-        fpga.c
-        axisCtl.c
+        riscvFunc.c
 )
 
 set(OBJECTS

@@ -8,13 +8,13 @@
 
 typedef union uDataUnion
 {
- float t_float;
- int t_int;
+ float        t_float;
+ int          t_int;
  unsigned int t_unsigned_int;
- int32_t t_int32_t;
- int16_t t_int16_t;
- uint16_t t_uint16_t;
- char t_char;
+ int32_t      t_int32_t;
+ int16_t      t_int16_t;
+ uint16_t     t_uint16_t;
+ char         t_char;
 } T_DATA_UNION, *P_DATA_UNION;
 
 #endif  /* __DATA_UNION__ */
@@ -31,6 +31,7 @@ typedef struct sRiscvVar
  int rParmZDro;                 /* 0x04  */
 } T_RISCV_VAR, *P_RISCV_VAR;
 
+extern unsigned char riscvSize[];
 extern T_RISCV_VAR rVar;
 
 #endif /* RISCV_STRUCT */

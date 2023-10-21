@@ -3,11 +3,11 @@
 #define FLT (0x80)
 #define SIZE_MASK (0x7)
 
-unsigned char riscvParm[] =
+enum RISCV_PARM_DEF
 {
- sizeof(rVar.rParmRpm),                 /* 0x00  */
- sizeof(rVar.rParmXLoc),                /* 0x01  */
- sizeof(rVar.rParmZLoc),                /* 0x02  */
- sizeof(rVar.rParmXDro),                /* 0x03  */
- sizeof(rVar.rParmZDro),                /* 0x04  */
+ R_PARM_RPM,                    /* 0x00  */
+ R_PARM_X_LOC,                  /* 0x01  */
+ R_PARM_Z_LOC,                  /* 0x02  */
+ R_PARM_X_DRO,                  /* 0x03  */
+ R_PARM_Z_DRO,                  /* 0x04  */
 };
