@@ -22,8 +22,14 @@ set(CMAKE_C_STANDARD 11)
 
 #add_compile_options(-march=rv32im_zba_zbb_zbc_zbs_zicsr -mabi=ilp32)
 add_compile_options(-march=rv32im_zicsr -mabi=ilp32)
-add_compile_options(-Og -Wall  -Wstrict-prototypes)
-add_compile_options(-ffunction-sections
+add_compile_options(
+        -Og
+        -Wall
+        -Wstrict-prototypes
+        -Wno-multichar
+        -Wno-unknown-pragmas)
+add_compile_options(
+        -ffunction-sections
         -fdata-sections
         -mno-fdiv
         -mstrict-align
@@ -45,6 +51,7 @@ add_link_options(-T ${LINKER_SCRIPT})
 
 set(SOURCES
         axisCtl.c
+	dbgSerial.c
         fpga.c
         Lathe.c
         remCmd.c

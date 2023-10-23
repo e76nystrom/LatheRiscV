@@ -6,6 +6,7 @@
 
 #define EXT extern
 #include "fpga.h"
+#include "dbgSerial.h"
 
 #if defined(FPGA_INCLUDE)	// <-
 
@@ -26,7 +27,9 @@ void nopW(void);
 void nopR(void);
 
 #endif	/* FPGA_INCLUDE */ // ->
-#ifdef LATHECPP_FPGA
+#if defined(LATHECPP_FPGA)
+
+#include "fpgaLatheStr.h"
 
 inline void nopW(void)
 {
@@ -44,6 +47,18 @@ inline void nopR(void)
 
 void ld(int op, int val)
 {
+ dbgPutStr("ld ");
+ dbgPutHex(op, 1);
+ dbgPutC(' ');
+ char *p = (char *) &fpgaOpStr[op];
+ dbgPutC(*p++);
+ dbgPutC(*p++);
+ dbgPutC(*p++);
+ dbgPutC(*p);
+ dbgPutC(' ');
+ dbgPutHex(val, 4);
+ dbgNewLine();
+
  CFS->data = val;
  CFS->op = op;
  nopW();

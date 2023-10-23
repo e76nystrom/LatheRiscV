@@ -4,7 +4,8 @@
 #include <stdbool.h>
 #include <string.h>
 #define EXT extern
-#include <remSerial.h>
+#include "remSerial.h"
+#include "dbgSerial.h"
 
 #if defined(REM_SERIAL_INCLUDE)	// <-
 #include <neorv32_uart.h>
@@ -49,8 +50,6 @@ void remPoll(void);
 void remSend(void);
 void remSendStart(void);
 void remRecv(void);
-void dbgPutC(char c);
-void dbgPutStr(const char *p);
 
 int  remCount(void);
 void remRxSkip(int n);
@@ -79,24 +78,24 @@ void remTxIntDis(void);
 void remTxIntClr(void);
 
 #endif	/* REM_SERIAL_INCLUDE */ // ->
-#ifdef LATHECPP_REM_SERIAL
+#if defined(LATHECPP_REM_SERIAL)
 
-inline uint32_t remRxReady()
+inline uint32_t remRxReady(void)
 {
  return (NEORV32_UART1->CTRL & (1 << UART_CTRL_RX_NEMPTY));
 }
 
-inline int remRxRead()
+inline int remRxRead(void)
 {
  return (char) (NEORV32_UART1->DATA >> UART_DATA_RTX_LSB);
 }
 
-inline uint32_t remTxEmpty()
+inline uint32_t remTxEmpty(void)
 {
  return (NEORV32_UART1->CTRL & (1 << UART_CTRL_TX_EMPTY));
 }
 
-inline uint32_t remTxFull()
+inline uint32_t remTxFull(void)
 {
  return (NEORV32_UART1->CTRL & (1 << UART_CTRL_TX_FULL));
 }
@@ -106,32 +105,32 @@ inline void remTxSend(char ch)
  NEORV32_UART1->DATA = (uint32_t) (ch << UART_DATA_RTX_LSB);
 }
 
-inline void remRxIntEna()
+inline void remRxIntEna(void)
 {
  neorv32_cpu_csr_set(CSR_MIE, 1 << UART1_RX_FIRQ_ENABLE);
 }
 
-inline void remRxIntDis()
+inline void remRxIntDis(void)
 {
  neorv32_cpu_csr_clr(CSR_MIE, 1 << UART1_RX_FIRQ_ENABLE);
 }
 
-inline void remRxIntClr()
+inline void remRxIntClr(void)
 {
  neorv32_cpu_csr_clr(CSR_MIP, 1 <<  UART1_RX_FIRQ_PENDING);
 }
 
-inline void remTxIntEna()
+inline void remTxIntEna(void)
 {
  neorv32_cpu_csr_set(CSR_MIE, 1 << UART1_TX_FIRQ_ENABLE);
 }
 
-inline void remTxIntDis()
+inline void remTxIntDis(void)
 {
  neorv32_cpu_csr_set(CSR_MIE, 1 << UART1_TX_FIRQ_ENABLE);
 }
 
-inline void remTxIntClr()
+inline void remTxIntClr(void)
 {
  neorv32_cpu_csr_clr(CSR_MIP, 1 <<  UART1_TX_FIRQ_PENDING);
 }
@@ -200,7 +199,7 @@ void remTxIsr(void)
 
 #endif
 
-void remSerialSetup()
+void remSerialSetup(void)
 {
  memset((void *) &remCtl, 0, sizeof(remCtl));
 
@@ -213,26 +212,6 @@ void remSerialSetup()
 #endif
 }
 
-void dbgPutC(char c)
-{
- neorv32_uart_t *uart = NEORV32_UART0;
- if ((uart->CTRL & (1 << UART_CTRL_TX_FULL)) == 0)
-  uart->DATA = (uint32_t) c << UART_DATA_RTX_LSB;
-}
-
-void dbgPutStr(const char *p)
-{
- 
- while (1)
- {
-  char c = *p++;
-  if (c == 0)
-   break;
-  if ((NEORV32_UART0->CTRL & (1 << UART_CTRL_TX_FULL)) == 0)
-   NEORV32_UART0->DATA = (uint32_t) c << UART_DATA_RTX_LSB;
- }
-}
-
 void remRecv(void)
 {
 // while (remRxReady() != 0)	/* if received character */
@@ -243,11 +222,11 @@ void remRecv(void)
   {
    if (ch == 1)			/* if start of message received */
    {
-    dbgPutC('<');
+    // dbgPutC('<');
     remCtl.state = 1;		/* set to start receiving */
    }
-   else
-    dbgPutC('-');
+   // else
+    // dbgPutC('-');
   }
   else				/* if receiving data */
   {
@@ -262,13 +241,13 @@ void remRecv(void)
 
     if (ch == '\r')		/* if end of command */
     {
-     dbgPutC('>');
-     dbgPutStr("\n\r");
+     // dbgPutC('>');
+     // dbgPutStr("\n");
      remCtl.state = 0;		/* set to waiting for start */
      remCtl.remCmdRcv = 1;
     }
-    else
-     dbgPutC(ch);
+    // else
+     // dbgPutC(ch);
    }
   }
  }
@@ -303,13 +282,13 @@ void remSend(void)
  }
 }
 
-void remPoll()
+void remPoll(void)
 {
  remRecv();
  remSend();
 }
 
-int remCount()
+int remCount(void)
 {
  return(remCtl.tx_count);
 }
@@ -428,7 +407,7 @@ void remSndHex(const unsigned char *p, int size)
   remPut('0');
 }
 
-int remGet()
+int remGet(void)
 {
  if (remCtl.rx_count != 0)	/* if anything in buffer */
  {
@@ -542,6 +521,7 @@ char remGetHex(int *val)
  return(count != 0);
 }
 
+#if 0
 char remGetStr(char *buf, int bufLen)
 {
  int len = 0;
@@ -577,5 +557,7 @@ char remGetStr(char *buf, int bufLen)
  }
  return(len);
 }
+
+#endif
 
 #endif	/* LATHE_CPP_REM_SERIAL */

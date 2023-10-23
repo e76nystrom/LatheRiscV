@@ -6,9 +6,10 @@
 #define EXT
 #include "Lathe.h"
 #include "axisCtl.h"
+#include "dbgSerial.h"
 #include "remSerial.h"
 #include "remCmd.h"
-//#include "fpga.h"
+#include "fpga.h"
 
 #define DEBUG
 
@@ -23,6 +24,12 @@ int spiEna = 0;
 
 #if defined(LATHE_INCLUDE)	// <-
 
+typedef struct S_CH2
+{
+ char c0;
+ char c1;
+} T_CH2, *P_CH2;
+
 #define printf neorv32_uart0_printf
 
 int main(void);
@@ -32,8 +39,11 @@ int main(void);
 neorv32_uart_t *uart0;
 neorv32_uart_t *uart1;
 
-int main()
+int main(void)
 {
+ neorv32_gpio_port_set(0);
+ CFS->ctl = 0;
+
  uart0 = (neorv32_uart_t *) NEORV32_UART0_BASE;
  uart1 = (neorv32_uart_t *) NEORV32_UART0_BASE;
  
@@ -44,6 +54,9 @@ int main()
 
  neorv32_uart1_setup(REM_BAUD_RATE, 0); /* init uart */
  neorv32_uart1_puts("rem starting\n");
+
+ neorv32_gpio_port_set(1);
+ CFS->ctl = RISCV_DATA;
 
  remSerialSetup();
  initAccelTable();

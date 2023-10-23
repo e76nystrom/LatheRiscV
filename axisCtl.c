@@ -11,8 +11,10 @@
 #include "lathe.h"
 #include "axisCtl.h"
 #include "fpga.h"
-#include "remCmd.h"
+#include "dbgSerial.h"
 #include "remSerial.h"
+//#include "remCmd.h"
+#include "riscvStruct.h"
 
 #if defined(AXIS_CTL_INCLUDE)	// <-
 
@@ -45,8 +47,6 @@ EXT T_ACCEL_DATA xSlow;
 
 EXT P_ACCEL_DATA accelData[RP_MAX];
 
-void initAccelTable(void);
-
 typedef union U_INT_BYTE
 {
  int iVal;
@@ -57,22 +57,27 @@ typedef struct S_AXIS_CTL
 {
  enum RISCV_AXIS_STATE_TYPE state; /* current wait state */
  int cmd;			/* current command flags */
- int curDist;			/* backlash distance */
  int dist;			/* distance to move */
+ int dir;			/* current direction */
+ int ctlFlag;			/* axisCtl flags */
+
+ int curDist;			/* backlash distance */
  int curLoc;			/* current location */
  int expLoc;			/* expected location */
- int dir;			/* current direction */
  int dro;			/* dro reading */
- int ctlFlags;			/* axisCtl flags */
- int ignore;
+
+ int ignore;			/* ignore after first error */
 
  int backlashSteps;		/* backlash steps */
  
+ char name;			/* axis name */
  int axisID;			/* axis identifier */
  struct S_AXIS_CTL *other;	/* pointer to other axis */
  int base;			/* command base for fpga */
  int accelOffset;		/* offset into accel table */
- int freqShift;			/* frequency shift */
+ int clkShift;			/* clk register shift */
+ int statDone;			/* axis done flag */
+ int statEna;			/* axis enable flag */
 } T_AXIS_CTL, *P_AXIS_CTL;
 
 EXT T_AXIS_CTL zAxis;
@@ -83,7 +88,7 @@ typedef struct S_INDEX_DATA
  uint32_t clocks;
  uint32_t lastClocks;
  uint32_t lastTime;
- int rpm;
+ uint32_t rpm;
 } T_INDEX_DATA;
 
 EXT T_INDEX_DATA indexData;
@@ -91,100 +96,21 @@ EXT T_INDEX_DATA indexData;
 #define FPGA_FREQUENCY 50000000
 #define INDEX_INTERVAL FPGA_FREQUENCY
 
+void initAccelTable(void);
 void initAxisCtl(void);
+void axisCheck(P_AXIS_CTL axis, int status);
 void axisCtl(void);
-void axisLoad(P_AXIS_CTL a, P_ACCEL_DATA accel);
+void axisLoad(P_AXIS_CTL a, int index);
 void axisMove(P_AXIS_CTL a);
 void moveZ(int cmd, int loc);
 void moveX(int cmd, int loc);
 void moveRelZ(int cmd, int dist);
 void moveRelX(int cmd, int dist);
+void moveRel(P_AXIS_CTL axis, int cmd, int dist);
 void setLoc(P_AXIS_CTL axis, int loc);
 
 #endif	/* AXIS_CTL_INCLUDE */ // ->
-#ifdef LATHECPP_AXIS_CTL
-
-void initAxisCtl(void)
-{
- printf("InitAxisCtl\n");
- memset((void *) &zAxis, 0, sizeof(zAxis));
- memset((void *) &xAxis, 0, sizeof(xAxis));
-
- zAxis.axisID = RA_Z_AXIS;
- zAxis.other = &xAxis;
- zAxis.base  = F_ZAxis_Base;
- zAxis.accelOffset = RP_Z_BASE;
- zAxis.freqShift = Z_FREQ_SHIFT;
- printf("z %d %d\n", zAxis.axisID, zAxis.freqShift);
-
- xAxis.axisID = RA_X_AXIS;
- xAxis.other = &zAxis;
- xAxis.base  = F_XAxis_Base;
- xAxis.accelOffset = RP_X_BASE;
- xAxis.freqShift = X_FREQ_SHIFT;
- printf("x %d %d\n", xAxis.axisID, xAxis.freqShift);
-}
-
-uint32_t delta;
-
-void axisCtl(void)
-{
- uint32_t t = NEORV32_MTIME->TIME_LO;
- delta = t - indexData.lastTime;
- if (delta > INDEX_INTERVAL)
- {
-  dbgPutC('.');
-  // dbgPutHex(delta, 4);
-  indexData.lastTime = t;
-  indexData.clocks = (int) rd(F_Rd_Idx_Clks);
-  if (indexData.clocks != 0)
-   indexData.rpm = FPGA_FREQUENCY / ((indexData.clocks + 1) * 60);
-  else
-   indexData.rpm = 0;
- }
-
- int status = (int) rd(F_Rd_Status);
-
- int base = F_ZAxis_Base;
- zAxis.dro = (int) rd(base + F_Sync_Base + F_Rd_Dro);
-
- if (zAxis.state != RS_IDLE)
- {
-//  int value = (int) rd(base + F_Rd_Axis_Ctl);
-  zAxis.curLoc = (int) rd(base + F_Sync_Base + F_Rd_Loc);
-  
-//  int dist = (int) rd(base + F_Sync_Base + F_Rd_Dist);
-
-  if (status & Z_AXIS_DONE)
-  {
-//   int axisStatus = (int) rd(base + F_Rd_Axis_Status);
-
-   ld(base + F_Ld_Axis_Ctl , CTL_INIT);
-   ld(base + F_Ld_Axis_Ctl, 0);
-   if (zAxis.state == RS_WAIT_BACKLASH)
-   {
-    axisMove(&zAxis);
-    zAxis.state = RS_WAIT;
-   }
-   else if (zAxis.state == RS_WAIT)
-   {
-    zAxis.ctlFlags = 0;
-    zAxis.state = RS_IDLE;
-   }
-  }
-
-  if ((status & Z_AXIS_ENA) == 0)
-  {
-   if (zAxis.ignore == 0)
-   {
-    zAxis.ignore = 1;
-    printf("z waiting no enable\n");
-   }
-  }
- }
- else
-  zAxis.ignore = 0;
-}
+#if defined(LATHECPP_AXIS_CTL)
 
 void initAccelTable(void)
 {
@@ -201,9 +127,151 @@ void initAccelTable(void)
  accelData[RP_X_SLOW]  = &xSlow;
 }
 
-void axisLoad(P_AXIS_CTL a, P_ACCEL_DATA aData)
+void initAxisCtl(void)
 {
+ printf("InitAxisCtl\n");
+ memset((void *) &zAxis, 0, sizeof(zAxis));
+ memset((void *) &xAxis, 0, sizeof(xAxis));
+
+ zAxis.name        = 'z';
+ zAxis.axisID      = RA_Z_AXIS;
+ zAxis.other       = &xAxis;
+ zAxis.base        = F_ZAxis_Base;
+ zAxis.accelOffset = RP_Z_BASE;
+ zAxis.clkShift    = Z_FREQ_SHIFT;
+ zAxis.statDone    = Z_AXIS_DONE;
+ zAxis.statEna     = Z_AXIS_ENA;
+ printf("z %d %d\n", zAxis.axisID, zAxis.clkShift);
+
+ zAxis.name        = 'x';
+ xAxis.axisID      = RA_X_AXIS;
+ xAxis.other       = &zAxis;
+ xAxis.base        = F_XAxis_Base;
+ xAxis.accelOffset = RP_X_BASE;
+ xAxis.clkShift    = X_FREQ_SHIFT;
+ xAxis.statDone    = Z_AXIS_DONE;
+ xAxis.statEna     = Z_AXIS_ENA;
+ printf("x %d %d\n", xAxis.axisID, xAxis.clkShift);
+}
+
+uint32_t delta;
+uint32_t lastMvStatus;
+
+T_CH2 mvDbg[] =
+{
+ {'P', 'A'},
+ {'R', 'X'},
+ {'R', 'Z'},
+ {'A', 'C'},
+ {'D', 'N'},
+ {'X', 'L'},
+ {'Z', 'L'},
+ {'X', 'A'},
+ {'X', 'H'},
+ {'Z', 'A'},
+ {'Z', 'H'},
+ {'M', 'S'},
+ {'E', 'S'}
+};
+
+void axisCtl(void)
+{
+ uint32_t t = NEORV32_MTIME->TIME_LO;
+ delta = t - indexData.lastTime;
+ if (delta > INDEX_INTERVAL)
+ {
+  // dbgPutC('.');
+  // dbgPutHex(delta, 4);
+  indexData.lastTime = t;
+  uint32_t clocks = rd(F_Rd_Idx_Clks);
+  indexData.clocks = clocks;
+  if (clocks != 0)
+  {
+   clocks /= 60;
+   indexData.rpm = FPGA_FREQUENCY / clocks;
+  }
+  else
+   indexData.rpm = 0;
+ }
+
+ if (rVar.rMvStatus != lastMvStatus)
+ {
+  dbgPutStr("mvStatus ");
+  dbgPutHex(rVar.rMvStatus, 2);
+  int mask = 1;
+  lastMvStatus = rVar.rMvStatus;
+  for (int i = 0; i < 12; i++)
+  {
+   if (rVar.rMvStatus & mask)
+   {
+    char *p = (char *) &mvDbg[i];
+    dbgPutC(' ');
+    dbgPutC(*p++);
+    dbgPutC(*p);
+   }
+   mask <<= 1;
+  }
+  dbgNewLine();
+ }
+
+ int status = (int) rd(F_Rd_Status);
+ axisCheck(&zAxis, status);
+ axisCheck(&xAxis, status);
+}
+
+void axisCheck(P_AXIS_CTL axis, int status)
+{
+ int base = axis->base;
+
+ axis->dro = (int) rd(base + F_Sync_Base + F_Rd_Dro);
+
+ if (axis->state != RS_IDLE)
+ {
+//  int value = (int) rd(base + F_Rd_Axis_Ctl);
+  axis->curLoc = (int) rd(base + F_Sync_Base + F_Rd_Loc);
+  
+//  int dist = (int) rd(base + F_Sync_Base + F_Rd_Dist);
+
+  if (status & axis->statDone)
+  {
+//   int axisStatus = (int) rd(base + F_Rd_Axis_Status);
+
+   ld(base + F_Ld_Axis_Ctl , CTL_INIT);
+   ld(base + F_Ld_Axis_Ctl, 0);
+   if (axis->state == RS_WAIT_BACKLASH)
+   {
+    axisMove(axis);
+    axis->state = RS_WAIT;
+   }
+   else if (axis->state == RS_WAIT)
+   {
+    axis->ctlFlag = 0;
+    axis->state = RS_IDLE;
+   }
+  }
+
+  if ((status & Z_AXIS_ENA) == 0)
+  {
+   if (axis->ignore == 0)
+   {
+    axis->ignore = 1;
+    printf("waiting no enable\n");
+   }
+  }
+ }
+ else
+  axis->ignore = 0;
+}
+
+void axisLoad(P_AXIS_CTL a, int index)
+{
+ dbgPutC(a->name);
+ dbgPutStr(" axisLoad ");
+ dbgPutHex(index, 1);
+ dbgNewLine();
+ 
  int base = a->base;
+ P_ACCEL_DATA aData = accelData[index];
  if (aData->freqDiv != 0)
   ld(base + F_Ld_Freq, aData->freqDiv);
 
@@ -237,41 +305,47 @@ void axisLoad(P_AXIS_CTL a, P_ACCEL_DATA aData)
 
 void axisMove(P_AXIS_CTL a)
 {
- int index = -1;
+ dbgPutC(a->name);
+ dbgPutStr(" axisMove\n");
+
+ int accelIndex = -1;
  int clkSel = CLK_FREQ;
  switch (a->cmd & CMD_MSK)
  {
  case CMD_SYN:
-  index = A_TURN;
+  accelIndex = A_TURN;
   clkSel = CLK_CH;
+  if (a->cmd & SYN_START)
+   a->ctlFlag = CTL_WAIT_SYNC;
+  if (a->cmd & SYN_TAPER)
+  {
+  }
   break;
 
- case CMD_JOG:
-  index = A_JOG;
+ case CMD_JOG:accelIndex = A_JOG;
   break;
 
  case CMD_MOV:
  case CMD_MAX:
-  index = A_MOVE;
+  accelIndex = A_MOVE;
   break;
 
   // case CMD_SPEED:
   //  break;
 
  case JOGSLOW:
-  index = A_SLOW;
+  accelIndex = A_SLOW;
   break;
 
  default:
   break;
  }
 
- if (index >= 0)
+ if (accelIndex >= 0)
  {
-  axisLoad(a, accelData[a->accelOffset + index]);
-  ld(a->base + F_Ld_Axis_Ctl, a->ctlFlags | CTL_START);
-  int tmp = clkSel << a->freqShift;
-  ld(F_Ld_Freq, tmp);
+  axisLoad(a, accelIndex);
+  ld(a->base + F_Ld_Axis_Ctl, a->ctlFlag | CTL_START);
+  ld(F_Ld_Clk_Ctl, clkSel << a->clkShift);
  }
 }
 
@@ -279,58 +353,67 @@ void moveZ(int cmd, int loc)
 {
  int pos = (int) rd(F_ZAxis_Base + F_Sync_Base + F_Rd_Loc);
  int dist = loc - pos;
- moveRelZ(cmd, dist);
+ moveRel(&zAxis, cmd, dist);
 }
 
 void moveX(int cmd, int loc)
 {
+ int pos = (int) rd(F_XAxis_Base + F_Sync_Base + F_Rd_Loc);
+ int dist = loc - pos;
+ moveRel(&xAxis, cmd, dist);
 }
 
-void moveRelZ(int cmd, int dist)
+void moveRel(P_AXIS_CTL axis, int cmd, int dist)
 {
- if (zAxis.state == RS_IDLE)
+ if (axis->state == RS_IDLE)
  {
-  zAxis.cmd = cmd;
+  axis->cmd = cmd;
   if (dist != 0)			/* if distance non zero */
   {
    int dirChange;
    if (dist > 0)			/* if moving positive */
    {
-    zAxis.dist = dist;			/* save distance */
-    dirChange = (zAxis.dir != R_DIR_POS); /* dir chg */
-    zAxis.dir = R_DIR_POS;		/* move positive direction */
-    zAxis.ctlFlags |= CTL_DIR;		/* set direction positive */
+    axis->dist = dist;			/* save distance */
+    dirChange = (axis->dir != R_DIR_POS); /* dir chg */
+    axis->dir = R_DIR_POS;		/* move positive direction */
+    axis->ctlFlag |= CTL_DIR;		/* set direction positive */
    }
    else
    {
-    zAxis.dist = -dist;			/* make positive */
-    dirChange = (zAxis.dir != R_DIR_NEG); /* dir chg */
-    zAxis.dir = R_DIR_NEG;		/* set move direction to negative */
+    axis->dist = -dist;			/* make positive */
+    dirChange = (axis->dir != R_DIR_NEG); /* dir chg */
+    axis->dir = R_DIR_NEG;		/* set move direction to negative */
    }
 
    if (dirChange &&			/* if direction change */
-       (zAxis.backlashSteps != 0))	/* and backlash present */
+       (axis->backlashSteps != 0))	/* and backlash present */
    {
-    zAxis.curDist = zAxis.backlashSteps;
-    axisLoad(&zAxis, &zJog);
-    zAxis.ctlFlags |= CTL_BACKLASH;	/* set direction positive */
+    axis->curDist = axis->backlashSteps;
+    axisLoad(axis, axis->accelOffset + A_JOG);
+    axis->ctlFlag |= CTL_BACKLASH;	/* set direction positive */
 
-    ld(zAxis.base + F_Ld_Axis_Ctl, zAxis.ctlFlags | CTL_START);
+    ld(axis->base + F_Ld_Axis_Ctl, axis->ctlFlag | CTL_START);
 
-    zAxis.ctlFlags &= ~CTL_BACKLASH;	/* set direction positive */
-    zAxis.state = RS_WAIT_BACKLASH;	/* set to wait for backlash */
+    axis->ctlFlag &= ~CTL_BACKLASH;	/* set direction positive */
+    axis->state = RS_WAIT_BACKLASH;	/* set to wait for backlash */
    }
    else					/* if no backlash */
    {
-    axisMove(&zAxis);
-    zAxis.state = RS_WAIT;		/* set to start move */
+    axisMove(axis);
+    axis->state = RS_WAIT;		/* set to start move */
    }
   }
  }
 }
 
+void moveRelZ(int cmd, int dist)
+{
+ moveRel(&zAxis, cmd, dist);
+}
+
 void moveRelX(int cmd, int dist)
 {
+ moveRel(&xAxis, cmd, dist);
 }
 
 void setLoc(P_AXIS_CTL axis, int loc)

@@ -42,8 +42,6 @@ void remPoll(void);
 void remSend(void);
 void remSendStart(void);
 void remRecv(void);
-void dbgPutC(char c);
-void dbgPutStr(const char *p);
 
 int  remCount(void);
 void remRxSkip(int n);

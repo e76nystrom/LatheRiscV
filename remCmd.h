@@ -23,8 +23,6 @@ EXT T_RUN_QUE runQue;
 typedef struct S_RUN_CTL
 {
  enum RISCV_RUN_WAIT_TYPE wait;
- int pass;
- int mvStatus;
 } T_RUN_CTL, *P_RUN_CTL;
 
 EXT T_RUN_CTL runCtl;
@@ -61,9 +59,5 @@ void rspPutHex(unsigned int val, int size);
 
 void saveAccel(int type, int val);
 void saveData(int type, int val);
-
-void dbgNewLine(void);
-void dbgPutDigit(char ch);
-void dbgPutHex(unsigned int val, int size);
 
 #endif  /* REMCMD_INC */	// ->
