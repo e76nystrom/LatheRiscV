@@ -50,21 +50,20 @@ int main(void)
  neorv32_rte_setup();			/* setup vectors */
 
  neorv32_uart0_setup(DBG_BAUD_RATE, 0); /* init uart */
- neorv32_uart0_puts("dbg starting 1\n");
+ neorv32_uart0_puts("\ndbg starting\n");
 
  neorv32_uart1_setup(REM_BAUD_RATE, 0); /* init uart */
- neorv32_uart1_puts("rem starting\n");
+ neorv32_uart1_puts("\nrem starting\n");
 
  neorv32_gpio_port_set(1);
- CFS->ctl = RISCV_DATA;
 
  remSerialSetup();
  initAccelTable();
  runInit();
  initAxisCtl();
 
- int tmp = 0x12345678;
- remSndHex((const unsigned char *) &tmp, 4);
+ // int tmp = 0x12345678;
+ // remSndHex((const unsigned char *) &tmp, 4);
  remSendStart();
 
  neorv32_cpu_csr_set(CSR_MSTATUS, 1 << CSR_MSTATUS_MIE);
@@ -80,7 +79,7 @@ int main(void)
  }
  
  neorv32_gpio_port_set(0);
-
+ 
  while (true)
  {
   remPoll();

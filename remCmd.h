@@ -3,7 +3,7 @@
 
 typedef struct S_RUN_DATA
 {
- enum SEL_RISCV_TYPE parm;
+ enum RISCV_CMD parm;
  int val1;
  int val2;
 } T_RUN_DATA, *P_RUN_DATA;
@@ -22,7 +22,7 @@ EXT T_RUN_QUE runQue;
 
 typedef struct S_RUN_CTL
 {
- enum RISCV_RUN_WAIT_TYPE wait;
+ enum RISCV_RUN_WAIT wait;
 } T_RUN_CTL, *P_RUN_CTL;
 
 EXT T_RUN_CTL runCtl;

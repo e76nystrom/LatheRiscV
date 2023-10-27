@@ -19,7 +19,8 @@ void dbgPutHex(unsigned int val, int size);
 void dbgPutC(char c)
 {
  neorv32_uart_t *uart = NEORV32_UART0;
- if ((uart->CTRL & (1 << UART_CTRL_TX_FULL)) == 0)
+ while ((uart->CTRL & (1 << UART_CTRL_TX_FULL)) != 0)
+  ;
   uart->DATA = (uint32_t) c << UART_DATA_RTX_LSB;
 }
 
@@ -39,7 +40,8 @@ void dbgPutStr(const char *p)
    break;
   if (c == '\n')
    dbgPutC('\r');
-  if ((NEORV32_UART0->CTRL & (1 << UART_CTRL_TX_FULL)) == 0)
+  while ((NEORV32_UART0->CTRL & (1 << UART_CTRL_TX_FULL)) != 0)
+   ;
    NEORV32_UART0->DATA = (uint32_t) c << UART_DATA_RTX_LSB;
  }
 }

@@ -7,6 +7,7 @@ typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
  uint32_t ctl;
  uint32_t data;
  uint32_t op;
+ uint32_t millis;
 } T_CFS, *P_CFS;
 
 #define CFS ((T_CFS *) (NEORV32_CFS_BASE))

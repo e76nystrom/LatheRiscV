@@ -36,6 +36,19 @@ typedef union U_INT_BYTE
  unsigned char bVal[4];
 } T_INT_BYTE;
 
+typedef struct S_AXIS_CONSTANT
+{
+ char name;			/* axis name */
+ int axisID;			/* axis identifier */
+ struct S_AXIS_CTL *other;	/* pointer to other axis */
+ int base;			/* command base for fpga */
+ int accelOffset;		/* offset into accel table */
+ int clkShift;			/* clk register shift */
+ int statDone;			/* axis done flag */
+ int statEna;			/* axis enable flag */
+ int waitState;			/* axis wait state */
+} T_AXIS_CONSTANT;
+
 typedef struct S_AXIS_CTL
 {
  enum RISCV_AXIS_STATE_TYPE state; /* current wait state */
@@ -49,10 +62,16 @@ typedef struct S_AXIS_CTL
  int expLoc;			/* expected location */
  int dro;			/* dro reading */
 
+ int endLoc;
+ int endDist;
+ int endDro;
+
  int ignore;			/* ignore after first error */
 
  int backlashSteps;		/* backlash steps */
  
+ T_AXIS_CONSTANT c;		/* axis constant data */
+#if 0
  char name;			/* axis name */
  int axisID;			/* axis identifier */
  struct S_AXIS_CTL *other;	/* pointer to other axis */
@@ -61,10 +80,12 @@ typedef struct S_AXIS_CTL
  int clkShift;			/* clk register shift */
  int statDone;			/* axis done flag */
  int statEna;			/* axis enable flag */
+ int waitState;			/* axis wait state */
+#endif
 } T_AXIS_CTL, *P_AXIS_CTL;
 
-EXT T_AXIS_CTL zAxis;
-EXT T_AXIS_CTL xAxis;
+extern T_AXIS_CTL zAxis;
+extern T_AXIS_CTL xAxis;
 
 typedef struct S_INDEX_DATA
 {
@@ -77,7 +98,7 @@ typedef struct S_INDEX_DATA
 EXT T_INDEX_DATA indexData;
 
 #define FPGA_FREQUENCY 50000000
-#define INDEX_INTERVAL FPGA_FREQUENCY
+#define INDEX_INTERVAL 1000
 
 void initAccelTable(void);
 void initAxisCtl(void);

@@ -5,6 +5,7 @@
 #include "fpgaLatheBits.h"
 
 #define EXT extern
+#include "Lathe.h"
 #include "fpga.h"
 #include "dbgSerial.h"
 
@@ -16,6 +17,7 @@ typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
  uint32_t ctl;
  uint32_t data;
  uint32_t op;
+ uint32_t millis;
 } T_CFS, *P_CFS;
 
 #define CFS ((T_CFS *) (NEORV32_CFS_BASE))
@@ -55,9 +57,7 @@ void ld(int op, int val)
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p);
- dbgPutC(' ');
- dbgPutHex(val, 4);
- dbgNewLine();
+ printf(" %x %d\n", val, val);
 
  CFS->data = val;
  CFS->op = op;
