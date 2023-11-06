@@ -22,6 +22,11 @@ typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
 
 #define CFS ((T_CFS *) (NEORV32_CFS_BASE))
 
+static inline uint32_t millis(void)
+{
+ return CFS->millis;
+}
+
 void ld(int op, int val);
 uint32_t rd(int op);
 
@@ -31,7 +36,7 @@ void nopR(void);
 #endif	/* FPGA_INCLUDE */ // ->
 #if defined(LATHECPP_FPGA)
 
-#include "fpgaLatheStr.h"
+extern inline uint32_t millis(void);
 
 inline void nopW(void)
 {
@@ -46,6 +51,8 @@ inline void nopR(void)
  asm volatile ("1:	addi	t1, t1, -1");
  asm volatile ("	bgtz	t1, 1b");
 }
+
+#include "fpgaLatheStr.h"
 
 void ld(int op, int val)
 {

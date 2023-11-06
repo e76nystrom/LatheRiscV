@@ -47,11 +47,13 @@ typedef struct S_AXIS_CONSTANT
  int statDone;			/* axis done flag */
  int statEna;			/* axis enable flag */
  int waitState;			/* axis wait state */
+ int dbgBase;			/* base axis dbg types */
 } T_AXIS_CONSTANT;
 
 typedef struct S_AXIS_CTL
 {
  enum RISCV_AXIS_STATE_TYPE state; /* current wait state */
+ enum RISCV_AXIS_STATE_TYPE lastState; /* last state */
  int cmd;			/* current command flags */
  int dist;			/* distance to move */
  int dir;			/* current direction */
@@ -60,6 +62,9 @@ typedef struct S_AXIS_CTL
  int curDist;			/* backlash distance */
  int curLoc;			/* current location */
  int expLoc;			/* expected location */
+ int stepsInch;			/* steps per inch */
+ int homeOffset;		/* home offset */
+ int savedLoc;			/* save location for taper */
  int dro;			/* dro reading */
 
  int endLoc;
@@ -98,10 +103,11 @@ typedef struct S_INDEX_DATA
 EXT T_INDEX_DATA indexData;
 
 #define FPGA_FREQUENCY 50000000
-#define INDEX_INTERVAL 1000
+#define INDEX_INTERVAL 100
 
 void initAccelTable(void);
 void initAxisCtl(void);
+void axisStateCheck(P_AXIS_CTL axis);
 void axisCheck(P_AXIS_CTL axis, int status);
 void axisCtl(void);
 void axisLoad(P_AXIS_CTL a, int index);
@@ -112,5 +118,8 @@ void moveRelZ(int cmd, int dist);
 void moveRelX(int cmd, int dist);
 void moveRel(P_AXIS_CTL axis, int cmd, int dist);
 void setLoc(P_AXIS_CTL axis, int loc);
+
+char *fmtLoc(char *buf, P_AXIS_CTL axis, int loc);
+char *fmtDist(char *buf, P_AXIS_CTL axis, int dist);
 
 #endif  /* AXISCTL_INC */	// ->

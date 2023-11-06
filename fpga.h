@@ -12,6 +12,11 @@ typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
 
 #define CFS ((T_CFS *) (NEORV32_CFS_BASE))
 
+static inline uint32_t millis(void)
+{
+ return CFS->millis;
+}
+
 void ld(int op, int val);
 uint32_t rd(int op);
 

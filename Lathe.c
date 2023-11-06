@@ -77,6 +77,32 @@ int main(void)
   int irqMask = 0;
   neorv32_spi_setup(prsc, cDiv, clkPhase, clkPolarity, irqMask);
  }
+
+#if 0
+ char buf[16];
+ dbgPutStr(dbgFmtNum(buf, 1));
+ dbgNewLine();
+ dbgPutStr(dbgFmtNum(buf, -1));
+ dbgNewLine();
+ dbgPutStr(dbgFmtNum(buf, 10));
+ dbgNewLine();
+ dbgPutStr(dbgFmtNum(buf, 100));
+ dbgNewLine();
+ dbgPutStr(dbgFmtNum(buf, 1000));
+ dbgNewLine();
+ dbgPutStr(dbgFmtNum(buf, 10000));
+ dbgNewLine();
+ dbgPutStr(dbgFmtNum(buf, 123456789));
+ dbgNewLine();
+ dbgPutStr(dbgFmtNum(buf, 0x7fffffff));
+ dbgNewLine();
+ #endif
+
+ printf("dbgQue %x sizeof %x\n", (uint32_t) &dbgQue,
+	(uint32_t) sizeof(dbgQue));
+ printf("DEBUG_DATA_SIZE %x siezof(T_DEBUG_DATA) %x\n",
+	DEBUG_DATA_SIZE, sizeof(T_DEBUG_DATA));
+ printf("runQue %x\n", (uint32_t) &runQue);
  
  neorv32_gpio_port_set(0);
  
