@@ -70,6 +70,6 @@ void saveAccel(int type, int val);
 void saveData(int type, int val);
 
 void clrDbgBuf(void);
-void dbgMsg(char dbg, int val);
+void dbgMsg(int dbg, int val);
 
 #endif  /* REMCMD_INC */	// ->

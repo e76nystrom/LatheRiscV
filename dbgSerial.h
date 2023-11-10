@@ -2,6 +2,7 @@
 #define DBGSERIAL_INC
 
 void dbgPutC(char c);
+void dbgPutSpace(void);
 void dbgNewLine(void);
 void dbgPutStr(const char *p);
 void dbgPutDigit(char ch);

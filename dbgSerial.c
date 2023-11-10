@@ -7,6 +7,7 @@
 #if defined(DBG_SERIAL_INCLUDE)	// <-
 
 void dbgPutC(char c);
+void dbgPutSpace(void);
 void dbgNewLine(void);
 void dbgPutStr(const char *p);
 void dbgPutDigit(char ch);
@@ -24,6 +25,11 @@ void dbgPutC(char c)
  while ((uart->CTRL & (1 << UART_CTRL_TX_FULL)) != 0)
   ;
  uart->DATA = (uint32_t) c << UART_DATA_RTX_LSB;
+}
+
+void dbgPutSpace(void)
+{
+ dbgPutC(' ');
 }
 
 void dbgNewLine(void)

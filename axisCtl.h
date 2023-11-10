@@ -76,17 +76,6 @@ typedef struct S_AXIS_CTL
  int backlashSteps;		/* backlash steps */
  
  T_AXIS_CONSTANT c;		/* axis constant data */
-#if 0
- char name;			/* axis name */
- int axisID;			/* axis identifier */
- struct S_AXIS_CTL *other;	/* pointer to other axis */
- int base;			/* command base for fpga */
- int accelOffset;		/* offset into accel table */
- int clkShift;			/* clk register shift */
- int statDone;			/* axis done flag */
- int statEna;			/* axis enable flag */
- int waitState;			/* axis wait state */
-#endif
 } T_AXIS_CTL, *P_AXIS_CTL;
 
 extern T_AXIS_CTL zAxis;
@@ -107,17 +96,16 @@ EXT T_INDEX_DATA indexData;
 
 void initAccelTable(void);
 void initAxisCtl(void);
+void axisCtl(void);
 void axisStateCheck(P_AXIS_CTL axis);
 void axisCheck(P_AXIS_CTL axis, int status);
-void axisCtl(void);
-void axisLoad(P_AXIS_CTL a, int index);
-void axisMove(P_AXIS_CTL a);
-void moveZ(int cmd, int loc);
-void moveX(int cmd, int loc);
-void moveRelZ(int cmd, int dist);
-void moveRelX(int cmd, int dist);
-void moveRel(P_AXIS_CTL axis, int cmd, int dist);
+void move(P_AXIS_CTL axis, int cmd, int loc);
+void jogMove(P_AXIS_CTL axis, int dist);
+void moveRel(P_AXIS_CTL axis, int dist, int cmd);
 void setLoc(P_AXIS_CTL axis, int loc);
+void axisStop(P_AXIS_CTL a);
+void axisMove(P_AXIS_CTL a);
+void axisLoad(P_AXIS_CTL a, int index);
 
 char *fmtLoc(char *buf, P_AXIS_CTL axis, int loc);
 char *fmtDist(char *buf, P_AXIS_CTL axis, int dist);

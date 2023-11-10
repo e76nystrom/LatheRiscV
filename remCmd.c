@@ -87,28 +87,20 @@ void saveAccel(int type, int val);
 void saveData(int type, int val);
 
 void clrDbgBuf(void);
-void dbgMsg(char dbg, int val);
+void dbgMsg(int dbg, int val);
 
 #endif	/* REM_CMD_INCLUDE */ // ->
 #if defined(LATHECPP_REM_CMD)
 
-void dbgMsg(char dbg, int val)
-{
- dbgPutStr("dbgMsg ");
- dbgPutHexByte(dbg);
- dbgPutC(' ');
- dbgPutHexByte(dbgQue.count);
- dbgPutC(' ');
- dbgPutHex(val, 4);
- dbgPutC(' ');
+#include "dMessageStr.h"
 
+void dbgMsg(int dbg, int val)
+{
  if (dbgQue.count < DEBUG_DATA_SIZE) /* if buffer not full */
  {
   dbgQue.count++;		/* update message count */
 
   P_DEBUG_DATA p = &dbgQue.data[dbgQue.fil]; /* get place to put msg */
-
-  dbgPutHex((uint32_t) p, 4);
 
   p->dbg = dbg;			/* save message type */
   p->val = val;			/* save value */
@@ -118,6 +110,19 @@ void dbgMsg(char dbg, int val)
   if (dbgQue.fil >= DEBUG_DATA_SIZE) /* if at end */
    dbgQue.fil = 0;		/* set to zero */
  }
+
+ dbgPutStr("dbgMsg ");
+ dbgPutHexByte(dbgQue.count);
+ dbgPutSpace();
+ char *p = (char *) &dMessageStr[dbg];
+ dbgPutC(*p++);
+ dbgPutC(*p++);
+ dbgPutC(*p++);
+ dbgPutC(*p);
+ dbgPutSpace();
+ dbgPutHexByte(dbg);
+ dbgPutSpace();
+ dbgPutHex(val, 4);
  dbgNewLine();
 }
 
@@ -273,12 +278,21 @@ void remCmd(void)
    break;
   if (parm < R_READ_ALL)
   {
-   char *p = (char *) &riscvCmdStr[parm];
-   dbgPutC(*p++);
-   dbgPutC(*p);
+   dbgPutHexByte(parm);
+   dbgPutSpace();
+   if ((parm & 0xff) < R_MAX_CMD)
+   {
+    char *p = (char *) &riscvCmdStr[parm];
+    dbgPutC(*p++);
+    dbgPutC(*p);
+   }
+   else
+   {
+    dbgPutStr("**err**");
+   }
    dbgNewLine();
-  // dbgPutHex(parm, 1);
-  // dbgPutC(' ');
+  // dbgPutHexByte(parm);
+  // dbgPutSpace();
   }
 
   n = 0;
@@ -286,13 +300,20 @@ void remCmd(void)
   {
   case R_NONE:
   case R_STOP:
+   break;
+   
   case R_STOP_Z:
+   axisStop(&zAxis);
+   break;
+   
   case R_STOP_X:
+   axisStop(&xAxis);
    break;
 
   case R_SETUP:
    dbgPutStr("setup\n");
    rVar.rMvStatus = 0;
+   runInit();
    break;
 
   case R_RESUME:
@@ -374,8 +395,18 @@ void remCmd(void)
   }
   break;
 
-  case R_MOVE_X:
+  case R_JOG_Z:
+   remGetHex(&val1);
+   jogMove(&zAxis, val1);
+   break;
+
+  case R_JOG_X:
+   remGetHex(&val1);
+   jogMove(&xAxis, val1);
+   break;
+
   case R_MOVE_Z:
+  case R_MOVE_X:
   case R_MOVE_REL_X:
   case R_MOVE_REL_Z:
   case R_SET_ACCEL_Q:
@@ -446,6 +477,15 @@ void remCmd(void)
      rspPut(*p1++);
 
    } while (val1 > 0);		/* while more requested */
+
+   if (rspCtl.count > 7)
+   {
+    dbgPutStr("dbgMsg ");
+    dbgPutHexByte(dbgQue.count);
+    dbgPutSpace();
+    dbgPutHexByte(rspCtl.count);
+    dbgNewLine();
+   }
   }
   break;
 
@@ -457,16 +497,16 @@ void remCmd(void)
 #pragma ide diagnostic ignored "ConstantConditionsOC"
   if (data != 0)
   {
-   dbgPutHex(runQue.count, 1);
+   dbgPutHexByte(runQue.count);
    dbgPutStr(" queued");
    if (n >= 1)
    {
-    dbgPutC(' ');
+    dbgPutSpace();
     dbgPutHex(data->val1, 4);
    }
    if (n >= 2)
    {
-    dbgPutC(' ');
+    dbgPutSpace();
     dbgPutHex(data->val2, 4);
    }
    runQue.fil += 1;
@@ -547,12 +587,12 @@ void runProcess(void)
   dbgMsg(D_MSTA, wait);
 
   dbgPutStr("wait ");
-  dbgPutHex(runCtl.wait, 1);
-  dbgPutC(' ');
+  dbgPutHexByte(runCtl.wait);
+  dbgPutSpace();
   char *p = (char *) &riscvRunWaitStr[wait];
   dbgPutC(*p++);
   dbgPutC(*p);
-  dbgPutC(' ');
+  dbgPutSpace();
   dbgNewLine();
  }
 
@@ -604,7 +644,7 @@ void runProcess(void)
     
    dbgPutStr("q ");
    dbgPutHexByte(parm);
-   dbgPutC(' ');
+   dbgPutSpace();
    if (parm < R_MAX_CMD)
    {
     char *p = (char *) &riscvCmdStr[parm];
@@ -615,8 +655,8 @@ void runProcess(void)
    {
     dbgPutStr("out of range");
    }
-   dbgPutC(' ');
-   dbgPutHex(runQue.count, 1);
+   dbgPutSpace();
+   dbgPutHexByte(runQue.count);
    dbgNewLine();
 
    if (data->parm != R_SET_ACCEL_Q)
@@ -680,19 +720,19 @@ void runProcess(void)
     break;
      
    case R_MOVE_Z:
-    moveZ(data->val1, data->val2);
+    move(&zAxis, data->val1, data->val2);
     break;
 
    case R_MOVE_X:
-    moveX(data->val1, data->val2);
+    move(&xAxis, data->val1, data->val2);
     break;
 
    case R_MOVE_REL_Z:
-    moveRelZ(data->val1, data->val2);
+    moveRel(&zAxis, data->val1, data->val2);
     break;
 
    case R_MOVE_REL_X:
-    moveRelX(data->val1, data->val2);
+    moveRel(&xAxis, data->val1, data->val2);
     break;
 
    default:
@@ -711,11 +751,11 @@ void saveAccel(int type, int val)
 
  dbgPutStr("saveAccel ");
  dbgPutHex(type, 2);
- dbgPutC(' ');
+ dbgPutSpace();
  char *p = (char *) &accelTypeStr[tmp.bVal[1]];
  dbgPutC(*p++);
  dbgPutC(*p);
- dbgPutC(' ');
+ dbgPutSpace();
  dbgPutHex(val, 4);
  dbgNewLine();
 

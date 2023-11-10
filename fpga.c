@@ -57,7 +57,7 @@ inline void nopR(void)
 void ld(int op, int val)
 {
  dbgPutStr("ld ");
- dbgPutHex(op, 1);
+ dbgPutHexByte(op);
  dbgPutC(' ');
  char *p = (char *) &fpgaOpStr[op];
  dbgPutC(*p++);
