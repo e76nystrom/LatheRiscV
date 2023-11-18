@@ -28,12 +28,15 @@ void getRiscvVar(int parm, P_DATA_UNION val);
 typedef struct sRiscvVar
 {
  uint32_t rMvStatus;    /* 0x00 R_MV_STATUS       */
- int rCurPass;          /* 0x01 R_CUR_PASS        */
- int rParmRpm;          /* 0x02 R_PARM_RPM        */
- int rParmXLoc;         /* 0x03 R_PARM_X_LOC      */
- int rParmZLoc;         /* 0x04 R_PARM_Z_LOC      */
- int rParmXDro;         /* 0x05 R_PARM_X_DRO      */
- int rParmZDro;         /* 0x06 R_PARM_Z_DRO      */
+ int rJogPause;         /* 0x01 R_JOG_PAUSE       */
+ int rCurPass;          /* 0x02 R_CUR_PASS        */
+ int rPRpm;             /* 0x03 R_P_RPM           */
+ int rPXLoc;            /* 0x04 R_P_X_LOC         */
+ int rPZLoc;            /* 0x05 R_P_Z_LOC         */
+ int rPXDro;            /* 0x06 R_P_X_DRO         */
+ int rPZDro;            /* 0x07 R_P_Z_DRO         */
+ int rXJogInc;          /* 0x08 R_X_JOG_INC       */
+ int rZJogInc;          /* 0x09 R_Z_JOG_INC       */
 } T_RISCV_VAR, *P_RISCV_VAR;
 
 extern unsigned char riscvSize[];

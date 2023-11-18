@@ -15,9 +15,23 @@ if argLen >= 3:
 else:
     sys.exit()
 
+def cVarName(var):
+    cVar = ""
+    last = False
+    for j in range(len(var)):
+        ch = var[j]
+        if ch.isupper():
+            if last:
+                cVar += "_"
+            last = False
+        else:
+            last = True
+        cVar += ch.upper()
+    return cVar
+
 baseName = os.path.basename(inpFile)
 name = baseName.split(".")[0]
-inc = name.upper() + "_INC"
+inc = cVarName(name) + "_INC"
     
 inp = open(inpFile, 'r')
 fOut = open(outFile, 'wb')

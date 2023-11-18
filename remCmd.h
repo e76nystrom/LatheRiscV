@@ -1,5 +1,5 @@
-#if !defined(REMCMD_INC)	// <-
-#define REMCMD_INC
+#if !defined(REM_CMD_INC)	// <-
+#define REM_CMD_INC
 
 typedef struct S_RUN_DATA
 {
@@ -72,4 +72,4 @@ void saveData(int type, int val);
 void clrDbgBuf(void);
 void dbgMsg(int dbg, int val);
 
-#endif  /* REMCMD_INC */	// ->
+#endif  /* REM_CMD_INC */	// ->

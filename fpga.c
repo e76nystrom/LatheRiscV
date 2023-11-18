@@ -1,8 +1,8 @@
 #define LATHECPP_FPGA
 
 #include <neorv32.h>
-#include "fpgaLatheReg.h"
-#include "fpgaLatheBits.h"
+// #include "fpgaLatheReg.h"
+// #include "fpgaLatheBits.h"
 
 #define EXT extern
 #include "Lathe.h"
@@ -18,7 +18,13 @@ typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
  uint32_t data;
  uint32_t op;
  uint32_t millis;
+ uint32_t zMpg;
+ uint32_t xMpg;
 } T_CFS, *P_CFS;
+
+#define MPG_MASK  0x7f
+#define MPG_DIR   0x80
+#define MPG_EMPTY 0x100
 
 #define CFS ((T_CFS *) (NEORV32_CFS_BASE))
 
@@ -54,12 +60,12 @@ inline void nopR(void)
 
 #include "fpgaLatheStr.h"
 
-void ld(int op, int val)
+void ld(const int op, const int val)
 {
  dbgPutStr("ld ");
  dbgPutHexByte(op);
  dbgPutC(' ');
- char *p = (char *) &fpgaOpStr[op];
+ const char *p = (char *) &fpgaOpStr[op];
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p++);
@@ -71,7 +77,7 @@ void ld(int op, int val)
  nopW();
 }
 
-uint32_t rd(int op)
+uint32_t rd(const int op)
 {
  CFS->op= 0x100 | op;
  nopR();

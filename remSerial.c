@@ -1,6 +1,7 @@
 #define LATHECPP_REM_SERIAL
 
 #include <neorv32.h>
+#include <neorv32_uart.h>
 #include <stdbool.h>
 #include <string.h>
 #define EXT extern
@@ -8,7 +9,6 @@
 #include "dbgSerial.h"
 
 #if defined(REM_SERIAL_INCLUDE)	// <-
-#include <neorv32_uart.h>
 
 #define REM_TX_SIZE 100
 #define REM_RX_SIZE 128
@@ -480,17 +480,16 @@ char remGetHexEcho(int *val)
 
 char remGetHex(int *val)
 {
- char ch;
  bool neg = false;
  int tmpVal = 0;
  int count = 0;
 
  while (count <= 8)
  {
-  int tmp = remGet();
+  const int tmp = remGet();
   if (tmp > 0)
   {
-   ch = (char) tmp;
+   char ch = tmp;
    if ((ch >= '0') &&
        (ch <= '9'))
    {
@@ -513,7 +512,9 @@ char remGetHex(int *val)
    tmpVal += ch;
   }
   else
+  {
    return(0);
+  }
  }
  if (neg)
   tmpVal = -tmpVal;

@@ -1,12 +1,17 @@
 #include <neorv32.h>
-#include "fpgaLatheReg.h"
-#include "fpgaLatheBits.h"
+// #include "fpgaLatheReg.h"
+// #include "fpgaLatheBits.h"
+// ReSharper disable once CppUnusedIncludeDirective
 #include "ctlstates.h"
 
 #define EXT
 #include "Lathe.h"
 #include "axisCtl.h"
-#include "dbgSerial.h"
+// #include "dbgSerial.h"
+#include <ctlbits.h>
+#include <riscvStruct.h>
+#include <stdbool.h>
+
 #include "remSerial.h"
 #include "remCmd.h"
 #include "fpga.h"
@@ -70,11 +75,11 @@ int main(void)
 
  if (spiEna)
  {
-  int prsc = 0;
-  int cDiv = 3;
-  int clkPhase = 0;
-  int clkPolarity = 0;
-  int irqMask = 0;
+  const int prsc = 0;
+  const int cDiv = 3;
+  const int clkPhase = 0;
+  const int clkPolarity = 0;
+  const int irqMask = 0;
   neorv32_spi_setup(prsc, cDiv, clkPhase, clkPolarity, irqMask);
  }
 
@@ -98,14 +103,27 @@ int main(void)
  dbgNewLine();
  #endif
 
+#if 0
  printf("dbgQue %x sizeof %x\n", (uint32_t) &dbgQue,
 	(uint32_t) sizeof(dbgQue));
  printf("DEBUG_DATA_SIZE %x siezof(T_DEBUG_DATA) %x\n",
 	DEBUG_DATA_SIZE, sizeof(T_DEBUG_DATA));
  printf("runQue %x\n", (uint32_t) &runQue);
+#endif
+
+ for (int i = 1; i < 32; i++)
+ {
+  int const tmp = CFS->zMpg;
+  printf("tmp %x\n", tmp);
+  if (tmp & 0x100)
+   break;
+ }
  
  neorv32_gpio_port_set(0);
  
+ rVar.rJogPause = DISABLE_JOG;
+ 
+ // ReSharper disable once CppDFAEndlessLoop
  while (true)
  {
   remPoll();

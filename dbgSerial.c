@@ -19,10 +19,10 @@ char* dbgFmtNum(char *buf, int val);
 #endif	/* DBG_SERIAL_INCLUDE */ // ->
 #if defined(LATHECPP_DBG_SERIAL)
 
-void dbgPutC(char c)
+void dbgPutC(const char c)
 {
  neorv32_uart_t *uart = NEORV32_UART0;
- while ((uart->CTRL & (1 << UART_CTRL_TX_FULL)) != 0)
+ while ((uart->CTRL & 1 << UART_CTRL_TX_FULL) != 0)
   ;
  uart->DATA = (uint32_t) c << UART_DATA_RTX_LSB;
 }
@@ -43,12 +43,12 @@ void dbgPutStr(const char *p)
  
  while (1)
  {
-  char c = *p++;
+  const char c = *p++;
   if (c == 0)
    break;
   if (c == '\n')
    dbgPutC('\r');
-  while ((NEORV32_UART0->CTRL & (1 << UART_CTRL_TX_FULL)) != 0)
+  while ((NEORV32_UART0->CTRL & 1 << UART_CTRL_TX_FULL) != 0)
    ;
    NEORV32_UART0->DATA = (uint32_t) c << UART_DATA_RTX_LSB;
  }
@@ -64,26 +64,23 @@ void dbgPutDigit(char ch)
  dbgPutC(ch);
 }
 
-void dbgPutHexByte(char ch)
+void dbgPutHexByte(const char ch)
 {
- char tmp = ch >> 4;
+ const char tmp = ch >> 4;
  dbgPutDigit(tmp);
  dbgPutDigit(ch);
 }
 
 void dbgPutHex(unsigned int val, int size)
 {
- unsigned char tmp;
- unsigned char ch;
-
- unsigned char *p = (unsigned char *) &val;
+ const unsigned char *p = (unsigned char *) &val;
  p += size;
  while (size != 0)
  {
   size -= 1;
   p -= 1;
-  tmp = *p;
-  ch = tmp;
+  const unsigned char tmp = *p;
+  unsigned char ch = tmp;
   ch >>= 4;
   dbgPutDigit(ch);
   dbgPutDigit(tmp);
@@ -108,7 +105,7 @@ char* dbgFmtNum(char *buf, int val)
  int i = 0;
  while (val != 0)
  {
-  *p++ = (val % 10) + '0';
+  *p++ = val % 10 + '0';
   val /= 10;
   i += 1;
  }
@@ -144,8 +141,9 @@ char* dbgFmtNum(char *buf, int val)
   i -= 1;
  }
 
+ // ReSharper disable once CppDFAUnusedValue
  *p1++ = 0;
- return(buf);
+ return buf;
 }
 
 #endif	/* LATHECPP_DBG_SERIAL */

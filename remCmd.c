@@ -94,13 +94,13 @@ void dbgMsg(int dbg, int val);
 
 #include "dMessageStr.h"
 
-void dbgMsg(int dbg, int val)
+void dbgMsg(const int dbg, const int val)
 {
  if (dbgQue.count < DEBUG_DATA_SIZE) /* if buffer not full */
  {
   dbgQue.count++;		/* update message count */
 
-  P_DEBUG_DATA p = &dbgQue.data[dbgQue.fil]; /* get place to put msg */
+  const P_DEBUG_DATA p = &dbgQue.data[dbgQue.fil]; /* get place to put msg */
 
   p->dbg = dbg;			/* save message type */
   p->val = val;			/* save value */
@@ -114,7 +114,7 @@ void dbgMsg(int dbg, int val)
  dbgPutStr("dbgMsg ");
  dbgPutHexByte(dbgQue.count);
  dbgPutSpace();
- char *p = (char *) &dMessageStr[dbg];
+ const char *p = (char *) &dMessageStr[dbg];
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p++);
@@ -134,7 +134,7 @@ void clrDbgBuf(void)
  dbgQue.emp = 0;
 }
 
-#include "riscvParm.h"
+//#include "riscvParm.h"
 
 #define RSP_BUF_SIZE 128
 typedef struct S_RSP_CTL
@@ -154,7 +154,7 @@ void rspInit(void)
  rspCtl.p0 = &rspCtl.buf[1];
 }
 
-void rspPut(char ch)
+void rspPut(const char ch)
 {
  if (rspCtl.count < RSP_BUF_SIZE)
  {
@@ -179,7 +179,7 @@ void rspPutDigit(char ch)
 
 void rspPutByte(char ch)
 {
- char tmp = ch;
+ const char tmp = ch;
  ch >>= 4;
  rspPutDigit(ch);
  rspPutDigit(tmp);
@@ -200,37 +200,35 @@ void rspReplDigit(unsigned char ch)
 
 void rspReplByte(unsigned char ch)
 {
- unsigned char tmp = ch;
+ const unsigned char tmp = ch;
  ch >>= 4;
  rspReplDigit(ch);
  rspReplDigit(tmp);
 }
 
-void rspReplHex(unsigned char tmp)
+void rspReplHex(const unsigned char ch)
 {
- unsigned char ch = tmp;
- ch >>= 4;
- rspReplDigit(ch);
+ unsigned char tmp = ch;
+ tmp >>= 4;
  rspReplDigit(tmp);
+ rspReplDigit(ch);
 }
 
 void rspPutHex(unsigned int val, int size)
 {
- unsigned char tmp;
- unsigned char ch;
  int zeros = 0;
 
  rspPut(' ');
- unsigned char *p = (unsigned char *) &val;
+ const unsigned char *p = (unsigned char *) &val;
  p += size;
  while (size != 0)
  {
   --size;
   p--;
-  tmp = *p;
-  ch = tmp;
+  unsigned char tmp = *p;
+  unsigned char ch = tmp;
   ch >>= 4;
-  if ((ch != 0)
+  if (ch != 0
   ||  zeros)
   {
    zeros = 1;
@@ -238,7 +236,7 @@ void rspPutHex(unsigned int val, int size)
   }
 
   tmp &= 0xf;
-  if ((tmp != 0)
+  if (tmp != 0
   ||  zeros)
   {
    zeros = 1;
@@ -251,6 +249,8 @@ void rspPutHex(unsigned int val, int size)
 
 #include "riscvCmdStr.h"
 
+int dbg;
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnusedValue"
 void remCmd(void)
@@ -258,7 +258,6 @@ void remCmd(void)
  int parm;
  int val1;
  int val2;
- P_RUN_DATA data;
 
  rspInit();
 
@@ -270,19 +269,36 @@ void remCmd(void)
 
  remRxSkip(2);
 
- int n;
+ dbg = 0;
  while (true)
  {
-  data = 0;
+  P_RUN_DATA data = 0;
+  
+  // char tmp1 = remCtl.rx_emp;
+  // char tmp2 = remCtl.rx_buffer[remCtl.rx_emp];
+
   if (remGetHex(&parm) == 0)	/* read parameter */
    break;
+
   if (parm < R_READ_ALL)
   {
+   // dbgPutHexByte(tmp1);
+   // dbgPutSpace();
+   // dbgPutC(tmp2);
+   // dbgPutSpace();
+   // dbgPutHexByte((remCtl.rx_emp - tmp1) & (REM_RX_SIZE-1));
+   // dbgPutSpace();
+   
+   dbg += 1;
+   dbgPutC('*');
+   dbgPutHexByte(dbg);
+   dbgPutSpace();
+
    dbgPutHexByte(parm);
    dbgPutSpace();
    if ((parm & 0xff) < R_MAX_CMD)
    {
-    char *p = (char *) &riscvCmdStr[parm];
+    const char *p = (char *) &riscvCmdStr[parm];
     dbgPutC(*p++);
     dbgPutC(*p);
    }
@@ -295,7 +311,7 @@ void remCmd(void)
   // dbgPutSpace();
   }
 
-  n = 0;
+  int n = 0;
   switch (parm)
   {
   case R_NONE:
@@ -320,11 +336,16 @@ void remCmd(void)
    dbgPutStr("resume\n");
    if (runCtl.wait == RW_PAUSE)
     runCtl.wait = RW_NONE;
+
+   if (rVar.rJogPause & DISABLE_JOG)
+    rVar.rJogPause &= ~(PAUSE_ENA_X_JOG | PAUSE_ENA_Z_JOG);
+
    rVar.rMvStatus &= ~(MV_PAUSE | MV_MEASURE | MV_READ_X | MV_READ_Z);
    break;
 
   case R_DONE:
    rVar.rMvStatus &= ~(MV_DONE);
+   rVar.rJogPause = 0;
    break;
    
   case R_SET_LOC_X:
@@ -353,6 +374,7 @@ void remCmd(void)
    break;
 
   case R_PAUSE:
+   dbgPutStr("***pause\n");
   case R_OP_START:
   case R_OP_DONE:
   case R_START_SPIN:
@@ -360,7 +382,6 @@ void remCmd(void)
   {
    if (runQue.count < RUN_DATA_SIZE)
    {
-    n = 1;
     data = &runQue.data[runQue.fil];
     data->parm = parm;
    }
@@ -439,6 +460,7 @@ void remCmd(void)
     data->val1 = val1;
    }
   }
+  break;
 
   case R_READ_ALL:
    rspPutByte(parm);
@@ -449,8 +471,9 @@ void remCmd(void)
    rspPutHex(zAxis.dro, sizeof(zAxis.dro));
    rspPutHex(xAxis.dro, sizeof(xAxis.dro));
    rspPutHex(rVar.rMvStatus, 2);
-   rspPutHex(RUN_DATA_SIZE - runQue.count, 1);
+   // rspPutHex(RUN_DATA_SIZE - runQue.count, 1);
    rspPutHex(dbgQue.count, 1);
+   dbg = -1;
    break;
 
   case R_READ_DBG:
@@ -459,20 +482,20 @@ void remCmd(void)
    rspPutByte(parm);
    do
    {
-    if ((dbgQue.count == 0) ||	/* if  no data */
-	((RSP_BUF_SIZE - rspCtl.count) < MAX_DBG_SIZE)) /* of no space */
+    if (dbgQue.count == 0 ||	/* if  no data */
+        RSP_BUF_SIZE - rspCtl.count < MAX_DBG_SIZE) /* of no space */
      break;
 
     val1 -= 1;
     dbgQue.count -= 1;		/* count off a message */
 
-    P_DEBUG_DATA p = &dbgQue.data[dbgQue.emp]; /* get pointer to data */
+    const P_DEBUG_DATA p = &dbgQue.data[dbgQue.emp]; /* get pointer to data */
     dbgQue.emp++;		 /* update empty pointer */
     if (dbgQue.emp >= DEBUG_DATA_SIZE) /* if past end */
      dbgQue.emp = 0;		/* point back to beginning */
 
     rspPut(p->dbg);
-    char *p1 = ((char *) &p->val);
+    const char *p1 = (char *) &p->val;
     for (int i = 0; i < sizeof(p->val); i++)
      rspPut(*p1++);
 
@@ -487,28 +510,34 @@ void remCmd(void)
     dbgNewLine();
    }
   }
+  dbg = -1;
   break;
 
   default:
    break;
-  }
+  } /* end switch (parm) */
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "ConstantConditionsOC"
   if (data != 0)
   {
    dbgPutHexByte(runQue.count);
+   dbgPutSpace();
+   dbgPutHexByte(runQue.fil);
    dbgPutStr(" queued");
+   
    if (n >= 1)
    {
     dbgPutSpace();
     dbgPutHex(data->val1, 4);
    }
+
    if (n >= 2)
    {
     dbgPutSpace();
     dbgPutHex(data->val2, 4);
    }
+
    runQue.fil += 1;
    if (runQue.fil >= RUN_DATA_SIZE)
     runQue.fil = 0;
@@ -517,10 +546,17 @@ void remCmd(void)
   }
 #pragma clang diagnostic pop
 
-  runProcess();
+  // runProcess();
+ } /* end while(true) */
+
+ if (dbg > 0)
+ {
+  dbgPutStr("&@&@ ");
+  dbgPutHexByte(dbg);
+  dbgNewLine();
  }
 
- int free = RUN_DATA_SIZE - runQue.count;
+ const int free = RUN_DATA_SIZE - runQue.count;
 
  // dbgNewLine();
  // dbgPutStr("que ");
@@ -530,12 +566,13 @@ void remCmd(void)
  rspPut('*');
  rspReplHex(rspCtl.count - 3);
  rspReplHex(free);
- remPutStrLen((const unsigned char *) rspCtl.buf, rspCtl.count);
+
+ remPutStrLen(rspCtl.buf, rspCtl.count);
  remSendStart();
 
  while (true)
  {
-  int tmp = remGet();
+  const int tmp = remGet();
   if (tmp < 0)
   {
    /* printf("end of buffer\n"); */
@@ -546,13 +583,15 @@ void remCmd(void)
   /* printf("extra char %d\n", tmp); */
   /* flushBuf(); */
  }
-}
+
+ runProcess();
+} /* end remCmd() */
 #pragma clang diagnostic pop
 
 void runInit(void)
 {
- memset((void *) &runQue, 0, sizeof(runQue));
- memset((void *) &runCtl, 0, sizeof(runCtl));
+ memset(&runQue, 0, sizeof(runQue));
+ memset(&runCtl, 0, sizeof(runCtl));
  runCtl.wait = RW_NONE;
 }
 
@@ -566,7 +605,7 @@ void spindleCheck(void)
    int delta = (int) indexData.clocks - (int) indexData.lastClocks;
    if (delta < 0)
     delta = -delta;
-   int percent = delta * 1000 / (int) indexData.clocks;
+   const int percent = delta * 1000 / (int) indexData.clocks;
    if (percent < 10)
     runCtl.wait = RW_NONE;
   }
@@ -579,7 +618,7 @@ int lastWait;
 
 void runProcess(void)
 {
- int wait = runCtl.wait;
+ const int wait = runCtl.wait;
 
  if (wait != lastWait)
  {
@@ -589,10 +628,9 @@ void runProcess(void)
   dbgPutStr("wait ");
   dbgPutHexByte(runCtl.wait);
   dbgPutSpace();
-  char *p = (char *) &riscvRunWaitStr[wait];
+  const char *p = (char *) &riscvRunWaitStr[wait];
   dbgPutC(*p++);
   dbgPutC(*p);
-  dbgPutSpace();
   dbgNewLine();
  }
 
@@ -628,26 +666,26 @@ void runProcess(void)
  {
   if (runQue.count != 0)
   {
-   if ((runQue.emp < 0) || (runQue.emp > RUN_DATA_SIZE))
+   if (runQue.emp < 0 || runQue.emp > RUN_DATA_SIZE)
    {
     dbgPutStr("runQue.emp ");
     dbgPutHex(runQue.emp, 4);
     dbgNewLine();
    }
-   P_RUN_DATA data = &runQue.data[runQue.emp];
+   const P_RUN_DATA data = &runQue.data[runQue.emp];
    runQue.emp += 1;
    if (runQue.emp >= RUN_DATA_SIZE)
     runQue.emp = 0;
    runQue.count -= 1;
 
-   int parm = data->parm;
+   const int parm = data->parm;
     
    dbgPutStr("q ");
    dbgPutHexByte(parm);
    dbgPutSpace();
    if (parm < R_MAX_CMD)
    {
-    char *p = (char *) &riscvCmdStr[parm];
+    const char *p = (char *) &riscvCmdStr[parm];
     dbgPutC(*p++);
     dbgPutC(*p);
    }
@@ -668,6 +706,9 @@ void runProcess(void)
     dbgMsg(D_DONE, PARM_START);
     rVar.rMvStatus &= ~MV_DONE;
     rVar.rMvStatus |= MV_ACTIVE;
+    rVar.rJogPause = DISABLE_JOG;
+    zAxis.mpgState = MPG_DISABLED;
+    xAxis.mpgState = MPG_DISABLED;
     break;
 
    case R_OP_DONE:
@@ -678,6 +719,16 @@ void runProcess(void)
 
    case R_PAUSE:
     dbgPutStr("pause\n");
+    // rVar.cmdPaused = 1;
+
+    rVar.rJogPause = DISABLE_JOG | data->val1;
+
+    if (data->val1 & PAUSE_READ_X)
+     rVar.rMvStatus |= MV_READ_X;
+
+    if (data->val1 & PAUSE_READ_Z)
+     rVar.rMvStatus |= MV_READ_Z;
+
     runCtl.wait = RW_PAUSE;
     rVar.rMvStatus |= MV_PAUSE;
     break;
@@ -692,9 +743,9 @@ void runProcess(void)
 
    case R_PASS:
    {
-    int pass = data->val1;
+    const int pass = data->val1;
     dbgMsg(D_PASS, pass);
-    printf("\npass %d %d\n\n", (pass >> 8) & 0xff, pass & 0xff);
+    printf("\npass %d %d\n\n", pass >> 8 & 0xff, pass & 0xff);
     rVar.rCurPass = data->val1;
    }
    break;
@@ -742,9 +793,9 @@ void runProcess(void)
  }
 }
 
-extern T_CH2 accelTypeStr[];
+#include "axisAccelTypeStr.h"
 
-void saveAccel(int type, int val)
+void saveAccel(const int type, const int val)
 {
  T_INT_BYTE tmp;
  tmp.iVal = type;
@@ -752,14 +803,14 @@ void saveAccel(int type, int val)
  dbgPutStr("saveAccel ");
  dbgPutHex(type, 2);
  dbgPutSpace();
- char *p = (char *) &accelTypeStr[tmp.bVal[1]];
+ const char *p = (char *) &axisAccelTypeStr[tmp.bVal[1]];
  dbgPutC(*p++);
  dbgPutC(*p);
  dbgPutSpace();
  dbgPutHex(val, 4);
  dbgNewLine();
 
- P_ACCEL_DATA accel = accelData[tmp.bVal[1]];
+ const P_ACCEL_DATA accel = accelData[tmp.bVal[1]];
  switch (tmp.bVal[0])
  {
  case RP_INITIAL_SUM:
@@ -785,7 +836,7 @@ void saveAccel(int type, int val)
  }
 }
 
-void saveData(int type, int val)
+void saveData(const int type, const int val)
 {
  switch (type)
  {

@@ -1,6 +1,5 @@
-#if !defined(REMSERIAL_INC)	// <-
-#define REMSERIAL_INC
-#include <neorv32_uart.h>
+#if !defined(REM_SERIAL_INC)	// <-
+#define REM_SERIAL_INC
 
 #define REM_TX_SIZE 100
 #define REM_RX_SIZE 128
@@ -69,4 +68,4 @@ void remTxIntEna(void);
 void remTxIntDis(void);
 void remTxIntClr(void);
 
-#endif  /* REMSERIAL_INC */	// ->
+#endif  /* REM_SERIAL_INC */	// ->

@@ -1,5 +1,5 @@
-#if !defined(DBGSERIAL_INC)	// <-
-#define DBGSERIAL_INC
+#if !defined(DBG_SERIAL_INC)	// <-
+#define DBG_SERIAL_INC
 
 void dbgPutC(char c);
 void dbgPutSpace(void);
@@ -11,4 +11,4 @@ void dbgPutHex(unsigned int val, int size);
 
 char* dbgFmtNum(char *buf, int val);
 
-#endif  /* DBGSERIAL_INC */	// ->
+#endif  /* DBG_SERIAL_INC */	// ->
