@@ -27,16 +27,19 @@ void getRiscvVar(int parm, P_DATA_UNION val);
 
 typedef struct sRiscvVar
 {
- uint32_t rMvStatus;    /* 0x00 R_MV_STATUS       */
- int rJogPause;         /* 0x01 R_JOG_PAUSE       */
- int rCurPass;          /* 0x02 R_CUR_PASS        */
- int rPRpm;             /* 0x03 R_P_RPM           */
- int rPXLoc;            /* 0x04 R_P_X_LOC         */
- int rPZLoc;            /* 0x05 R_P_Z_LOC         */
- int rPXDro;            /* 0x06 R_P_X_DRO         */
- int rPZDro;            /* 0x07 R_P_Z_DRO         */
- int rXJogInc;          /* 0x08 R_X_JOG_INC       */
- int rZJogInc;          /* 0x09 R_Z_JOG_INC       */
+ uint32_t rMvStatus;    /* 0x00 R_MV_STATUS      move status */
+ int rJogPause;         /* 0x01 R_JOG_PAUSE      jog pause */
+ int rCurPass;          /* 0x02 R_CUR_PASS       current pass */
+ int rCfgVal;           /* 0x03 R_CFG_VAL        fpga configuration value */
+ int rPRpm;             /* 0x04 R_P_RPM          spindle rpm */
+ int rPwmDiv;           /* 0x05 R_PWM_DIV        pwm divider */
+ int rPwmCtr;           /* 0x06 R_PWM_CTR        pwm counter maxy */
+ int rPXLoc;            /* 0x07 R_P_X_LOC         */
+ int rPZLoc;            /* 0x08 R_P_Z_LOC         */
+ int rPXDro;            /* 0x09 R_P_X_DRO         */
+ int rPZDro;            /* 0x0a R_P_Z_DRO         */
+ int rXJogInc;          /* 0x0b R_X_JOG_INC       */
+ int rZJogInc;          /* 0x0c R_Z_JOG_INC       */
 } T_RISCV_VAR, *P_RISCV_VAR;
 
 extern unsigned char riscvSize[];

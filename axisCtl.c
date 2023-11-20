@@ -14,7 +14,7 @@
 #include "axisCtl.h"
 #include "fpga.h"
 #include "dbgSerial.h"
-#include "remSerial.h"
+//#include "remSerial.h"
 #include "remCmd.h"
 #include "riscvStruct.h"
 
@@ -22,6 +22,8 @@
 
 #define R_DIR_POS 1
 #define R_DIR_NEG 0
+
+#define R_DIR_INV R_DIR_POS
 
 #define MPG_SLOW 20
 #define MPG_STEPS_COUNT 14
@@ -81,6 +83,7 @@ typedef struct S_AXIS_CTL
  enum RISCV_AXIS_STATE_TYPE lastState; /* last state */
  enum MPG_STATE mpgState;	/* mpg state */
  enum MPG_STATE lastMpgState;	/* last mpg state */
+ int mpgInvert;			/* invert direction of mpg */
  int cmd;			/* current command flags */
  int dist;			/* distance to move */
  int dir;			/* current direction */
@@ -509,7 +512,8 @@ void jogMpg(const P_AXIS_CTL axis)
   dbgPutHexByte(mpgDelta);
   dbgPutSpace();
   
-  const int dir = (mpgDelta & MPG_DIR) != 0 ? R_DIR_POS : R_DIR_NEG; /* get dir */
+  int dir = (mpgDelta & MPG_DIR) != 0 ? R_DIR_POS : R_DIR_NEG; /* get dir */
+  dir ^= axis->mpgInvert;	/* invert direction if needed */
   mpgDelta &= MPG_MASK;		/* mask off direction bit */
 
   if (dir != axis->dir)		/* if direction change */
@@ -519,7 +523,7 @@ void jogMpg(const P_AXIS_CTL axis)
    const int axisStat = rd(axis->c.base + F_Rd_Status); /* read axis status */
    if ((axisStat & AX_DIST_ZERO) == 0) /* if axis active */
    {
-    const int dist = rd(axis->c.base + F_Sync_Base + F_Rd_Accel_Steps); /* get dist */
+    const int dist = rd(axis->c.base + F_Sync_Base + F_Rd_Accel_Steps);
     ld(axis->c.base + F_Sync_Base + F_Ld_Dist, dist); /* set min dist to go */
    }
    axis->mpgState = MPG_DIR_CHANGE_WAIT; /* wait for stop */

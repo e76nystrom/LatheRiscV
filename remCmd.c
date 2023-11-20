@@ -83,8 +83,13 @@ void rspReplHex(unsigned char ch);
 
 void rspPutHex(unsigned int val, int size);
 
+void spindleStart(void);
+void spindleStop(void);
+void spindleUpdate(void);
+
+void configSetup(void);
+
 void saveAccel(int type, int val);
-void saveData(int type, int val);
 
 void clrDbgBuf(void);
 void dbgMsg(int dbg, int val);
@@ -347,6 +352,10 @@ void remCmd(void)
    rVar.rMvStatus &= ~(MV_DONE);
    rVar.rJogPause = 0;
    break;
+
+  case R_SEND_DONE:
+   configSetup();
+   break;
    
   case R_SET_LOC_X:
    CFS->ctl = RISCV_DATA;
@@ -377,8 +386,6 @@ void remCmd(void)
    dbgPutStr("***pause\n");
   case R_OP_START:
   case R_OP_DONE:
-  case R_START_SPIN:
-  case R_STOP_SPIN:
   {
    if (runQue.count < RUN_DATA_SIZE)
    {
@@ -388,8 +395,19 @@ void remCmd(void)
   }
   break;
 
+  case R_START_SPIN:
+   spindleStart();
+   break;
+
+  case R_STOP_SPIN:
+   spindleStop();
+   break;
+
+  case R_UPDATE_SPIN:
+   spindleUpdate();
+   break;
+
   case R_SET_ACCEL:
-   n = 2;
    remGetHex(&val1);
    remGetHex(&val2);
    saveAccel(val1, val2);
@@ -397,12 +415,17 @@ void remCmd(void)
 
   case R_SET_DATA:
   {
-   n = 2;
    remGetHex(&val1);
    remGetHex(&val2);
-    T_DATA_UNION val;
-     val.t_int = val2;
-     setRiscvVar(val1, val);
+   dbgPutStr("setData ");
+   dbgPutHexByte(val1);
+   dbgPutSpace();
+   dbgPutHex(val2, 4);
+   dbgNewLine();
+   
+   T_DATA_UNION val;
+   val.t_int = val2;
+   setRiscvVar(val1, val);
    }
    break;
 
@@ -704,9 +727,12 @@ void runProcess(void)
    {
    case R_OP_START:
     dbgMsg(D_DONE, PARM_START);
+    
     rVar.rMvStatus &= ~MV_DONE;
     rVar.rMvStatus |= MV_ACTIVE;
+    
     rVar.rJogPause = DISABLE_JOG;
+    
     zAxis.mpgState = MPG_DISABLED;
     xAxis.mpgState = MPG_DISABLED;
     break;
@@ -714,7 +740,11 @@ void runProcess(void)
    case R_OP_DONE:
     dbgMsg(D_DONE, PARM_DONE);
     rVar.rMvStatus &= ~MV_ACTIVE;
-    rVar.rMvStatus |= MV_DONE;
+
+    if (rVar.rCurPass == 0)
+     rVar.rJogPause = 0;
+    else
+     rVar.rMvStatus |= MV_DONE;
     break;
 
    case R_PAUSE:
@@ -793,6 +823,33 @@ void runProcess(void)
  }
 }
 
+void spindleStart(void)
+{
+ ld(F_PWM_Base + F_Ld_PWM_Max, rVar.rPwmDiv);
+ ld(F_PWM_Base + F_Ld_PWM_Trig, rVar.rPwmCtr);
+}
+
+void spindleStop(void)
+{
+ ld(F_PWM_Base + F_Ld_PWM_Max, 0);
+ ld(F_PWM_Base + F_Ld_PWM_Trig, 0);
+}
+
+void spindleUpdate(void)
+{
+ ld(F_PWM_Base + F_Ld_PWM_Trig, rVar.rPwmCtr);
+}
+
+void configSetup(void)
+{
+ // ld(F_Ld_Cfg_Ctl, CFG_DRO_STEP | CFG_ZDRO_INV | CFG_XDRO_INV);
+ ld(F_Ld_Cfg_Ctl, rVar.rCfgVal);
+ if (rVar.rCfgVal & CFG_ZMPG_INV)
+  zAxis.mpgInvert = R_DIR_INV;
+ if (rVar.rCfgVal & CFG_XMPG_INV)
+  xAxis.mpgInvert = R_DIR_INV;
+}
+
 #include "axisAccelTypeStr.h"
 
 void saveAccel(const int type, const int val)
@@ -831,23 +888,6 @@ void saveAccel(const int type, const int val)
  case RP_FREQ_DIV:
   accel->freqDiv = val;
   break;
- default:
-  break;
- }
-}
-
-void saveData(const int type, const int val)
-{
- switch (type)
- {
- case RD_Z_BACKLASH:
-  zAxis.backlashSteps = val;
-  break;
-
- case RD_X_BACKLASH:
-  xAxis.backlashSteps = val;
-  break;
-
  default:
   break;
  }

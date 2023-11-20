@@ -66,8 +66,13 @@ void rspReplHex(unsigned char ch);
 
 void rspPutHex(unsigned int val, int size);
 
+void spindleStart(void);
+void spindleStop(void);
+void spindleUpdate(void);
+
+void configSetup(void);
+
 void saveAccel(int type, int val);
-void saveData(int type, int val);
 
 void clrDbgBuf(void);
 void dbgMsg(int dbg, int val);

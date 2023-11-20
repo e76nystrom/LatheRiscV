@@ -4,6 +4,8 @@
 #define R_DIR_POS 1
 #define R_DIR_NEG 0
 
+#define R_DIR_INV R_DIR_POS
+
 #define MPG_SLOW 20
 #define MPG_STEPS_COUNT 14
 #define CLKS_MSEC (50000000 / 1000)
@@ -62,6 +64,7 @@ typedef struct S_AXIS_CTL
  enum RISCV_AXIS_STATE_TYPE lastState; /* last state */
  enum MPG_STATE mpgState;	/* mpg state */
  enum MPG_STATE lastMpgState;	/* last mpg state */
+ int mpgInvert;			/* invert direction of mpg */
  int cmd;			/* current command flags */
  int dist;			/* distance to move */
  int dir;			/* current direction */
