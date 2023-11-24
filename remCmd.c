@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "ctlStates.h"
 #include "ctlbits.h"
+#include "riscvCmdList.h"
 #define EXT extern
 #include "lathe.h"
 #include "remCmd.h"
@@ -17,6 +18,7 @@
 #include "fpgaLatheBits.h"
 
 #if defined(REM_CMD_INCLUDE)	// <-
+#include "riscvCmdList.h"
 
 typedef struct S_RUN_DATA
 {
@@ -75,11 +77,13 @@ void runProcess(void);
 
 void rspPut(char ch);
 void rspPutDigit(char ch);
-void rspPutByte(char ch);
+void rspPutHexByte(char ch);
 
+#if 0
 void rspReplDigit(unsigned char ch);
 void rspReplByte(unsigned char ch);
 void rspReplHex(unsigned char ch);
+#endif
 
 void rspPutHex(unsigned int val, int size);
 
@@ -146,7 +150,9 @@ typedef struct S_RSP_CTL
 {
  int count;
  unsigned char *p;
+#if 0
  unsigned char *p0;
+#endif
  unsigned char buf[RSP_BUF_SIZE];
 } T_RSP_CTL;
 
@@ -156,7 +162,9 @@ void rspInit(void)
 {
  rspCtl.count = 0;
  rspCtl.p = rspCtl.buf;
+#if 0
  rspCtl.p0 = &rspCtl.buf[1];
+#endif
 }
 
 void rspPut(const char ch)
@@ -182,7 +190,7 @@ void rspPutDigit(char ch)
  }
 }
 
-void rspPutByte(char ch)
+void rspPutHexByte(char ch)
 {
  const char tmp = ch;
  ch >>= 4;
@@ -190,6 +198,7 @@ void rspPutByte(char ch)
  rspPutDigit(tmp);
 }
 
+#if 0
 void rspReplDigit(unsigned char ch)
 {
  if (rspCtl.count < RSP_BUF_SIZE)
@@ -218,6 +227,7 @@ void rspReplHex(const unsigned char ch)
  rspReplDigit(tmp);
  rspReplDigit(ch);
 }
+#endif
 
 void rspPutHex(unsigned int val, int size)
 {
@@ -253,11 +263,10 @@ void rspPutHex(unsigned int val, int size)
 }
 
 #include "riscvCmdStr.h"
+#include "riscvCmdSize.h"
 
 int dbg;
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "UnusedValue"
 void remCmd(void)
 {
  int parm;
@@ -265,27 +274,30 @@ void remCmd(void)
  int val2;
 
  rspInit();
-
+#if 0
  rspPut('-');
  rspPut(0);			/* reserve space for count */
  rspPut(0);
  rspPut(0);			/* reserve space for que count */
  rspPut(0);
+#endif
 
+#if 0
  remRxSkip(2);
+#else
+ int cmdLen = remGetHexByte();
+#endif
 
  dbg = 0;
  while (true)
  {
-  P_RUN_DATA data = 0;
-  
   // char tmp1 = remCtl.rx_emp;
   // char tmp2 = remCtl.rx_buffer[remCtl.rx_emp];
 
   if (remGetHex(&parm) == 0)	/* read parameter */
    break;
 
-  if (parm < R_READ_ALL)
+  if (parm > R_READ_ALL)
   {
    // dbgPutHexByte(tmp1);
    // dbgPutSpace();
@@ -293,6 +305,14 @@ void remCmd(void)
    // dbgPutSpace();
    // dbgPutHexByte((remCtl.rx_emp - tmp1) & (REM_RX_SIZE-1));
    // dbgPutSpace();
+   
+   if (cmdLen != 0)
+   {
+    dbgPutC('=');
+    dbgPutHexByte(cmdLen);
+    dbgNewLine();
+    cmdLen = 0;
+   }
    
    dbg += 1;
    dbgPutC('*');
@@ -306,289 +326,246 @@ void remCmd(void)
     const char *p = (char *) &riscvCmdStr[parm];
     dbgPutC(*p++);
     dbgPutC(*p);
+    dbgPutSpace();
    }
    else
    {
     dbgPutStr("**err**");
    }
+   // dbgPutHexByte(parm);
+   // dbgPutSpace();
+  }
+
+  const int n = riscvCmdSize[parm];
+  if (n >= 1)
+   remGetHex(&val1);
+
+  if (n >= 2)
+   remGetHex(&val2);
+
+  if (parm >= R_OP_START)	/* queue parm */
+  {
+   if (runQue.count < RUN_DATA_SIZE)
+   {
+    const P_RUN_DATA data = &runQue.data[runQue.fil];
+    data->parm = parm;
+    dbgPutHexByte(runQue.count);
+    dbgPutSpace();
+    dbgPutHexByte(runQue.fil);
+    dbgPutStr(" queued");
+   
+    if (n >= 1)
+    {
+     data->val1 = val1;
+     dbgPutSpace();
+     dbgPutHex(val1, 4);
+    }
+
+    if (n >= 2)
+    {
+     data->val2 = val2;
+     dbgPutSpace();
+     dbgPutHex(val2, 4);
+    }
+
+    runQue.fil += 1;
+    if (runQue.fil >= RUN_DATA_SIZE)
+     runQue.fil = 0;
+    runQue.count += 1;
+   }
    dbgNewLine();
-  // dbgPutHexByte(parm);
-  // dbgPutSpace();
-  }
-
-  int n = 0;
-  switch (parm)
+  }   
+  else
   {
-  case R_NONE:
-  case R_STOP:
-   break;
-   
-  case R_STOP_Z:
-   axisStop(&zAxis);
-   break;
-   
-  case R_STOP_X:
-   axisStop(&xAxis);
-   break;
-
-  case R_SETUP:
-   dbgPutStr("setup\n");
-   rVar.rMvStatus = 0;
-   runInit();
-   break;
-
-  case R_RESUME:
-   dbgPutStr("resume\n");
-   if (runCtl.wait == RW_PAUSE)
-    runCtl.wait = RW_NONE;
-
-   if (rVar.rJogPause & DISABLE_JOG)
-    rVar.rJogPause &= ~(PAUSE_ENA_X_JOG | PAUSE_ENA_Z_JOG);
-
-   rVar.rMvStatus &= ~(MV_PAUSE | MV_MEASURE | MV_READ_X | MV_READ_Z);
-   break;
-
-  case R_DONE:
-   rVar.rMvStatus &= ~(MV_DONE);
-   rVar.rJogPause = 0;
-   break;
-
-  case R_SEND_DONE:
-   configSetup();
-   break;
-   
-  case R_SET_LOC_X:
-   CFS->ctl = RISCV_DATA;
-   remGetHex(&val1);
-   setLoc(&xAxis, val1);
-   dbgMsg(D_XLOC, val1);
-   break;
-
-  case R_SET_LOC_Z:
-   CFS->ctl = RISCV_DATA;
-   ld(F_Ld_Cfg_Ctl, CFG_DRO_STEP | CFG_ZDRO_INV | CFG_XDRO_INV);
-   remGetHex(&val1);
-   setLoc(&zAxis, val1);
-   dbgMsg(D_ZLOC, val1);
-   break;
-
-  case R_STEPS_Z:
-   remGetHex(&val1);
-   zAxis.stepsInch = val1;
-   break;
-
-  case R_STEPS_X:
-   remGetHex(&val1);
-   xAxis.stepsInch = val1;
-   break;
-
-  case R_PAUSE:
-   dbgPutStr("***pause\n");
-  case R_OP_START:
-  case R_OP_DONE:
-  {
-   if (runQue.count < RUN_DATA_SIZE)
+   switch (parm)
    {
-    data = &runQue.data[runQue.fil];
-    data->parm = parm;
-   }
-  }
-  break;
-
-  case R_START_SPIN:
-   spindleStart();
-   break;
-
-  case R_STOP_SPIN:
-   spindleStop();
-   break;
-
-  case R_UPDATE_SPIN:
-   spindleUpdate();
-   break;
-
-  case R_SET_ACCEL:
-   remGetHex(&val1);
-   remGetHex(&val2);
-   saveAccel(val1, val2);
-   break;
-
-  case R_SET_DATA:
-  {
-   remGetHex(&val1);
-   remGetHex(&val2);
-   dbgPutStr("setData ");
-   dbgPutHexByte(val1);
-   dbgPutSpace();
-   dbgPutHex(val2, 4);
-   dbgNewLine();
-   
-   T_DATA_UNION val;
-   val.t_int = val2;
-   setRiscvVar(val1, val);
-   }
-   break;
-
-  case R_GET_DATA:
-  {
-   remGetHex(&val1);
-   T_DATA_UNION val;
-   getRiscvVar(val1, &val);
-   rspPutByte(parm);
-   rspPutHex(val.t_int32_t, riscvSize[parm]);
-  }
-  break;
-
-  case R_JOG_Z:
-   remGetHex(&val1);
-   jogMove(&zAxis, val1);
-   break;
-
-  case R_JOG_X:
-   remGetHex(&val1);
-   jogMove(&xAxis, val1);
-   break;
-
-  case R_MOVE_Z:
-  case R_MOVE_X:
-  case R_MOVE_REL_X:
-  case R_MOVE_REL_Z:
-  case R_SET_ACCEL_Q:
-  {
-   remGetHex(&val1);
-   remGetHex(&val2);
-   if (runQue.count < RUN_DATA_SIZE)
+   case R_NONE:
+    break;
+    
+   case R_READ_DBG:
    {
-    n = 2;
-    data = &runQue.data[runQue.fil];
-    data->parm = parm;
-    data->val1 = val1;
-    data->val2 = val2;
-   }
-  }
-  break;
+    rspPutHexByte(parm);
+    int sent = 0;
+    do
+    {
+     if (dbgQue.count == 0 ||	/* if  no data */
+	 RSP_BUF_SIZE - rspCtl.count < MAX_DBG_SIZE) /* of no space */
+      break;
 
-  case R_SAVE_Z:
-  case R_SAVE_X:
-  case R_HOFS_Z:
-  case R_HOFS_X:
-  case R_PASS:
-  {
-   remGetHex(&val1);
-   if (runQue.count < RUN_DATA_SIZE)
-   {
-    n = 1;
-    data = &runQue.data[runQue.fil];
-    data->parm = parm;
-    data->val1 = val1;
-   }
-  }
-  break;
+     val1 -= 1;
+     dbgQue.count -= 1;		/* count off a message */
 
-  case R_READ_ALL:
-   rspPutByte(parm);
-   rspPutHex(zAxis.curLoc, sizeof(zAxis.curLoc));
-   rspPutHex(xAxis.curLoc, sizeof(xAxis.curLoc));
-   rspPutHex(indexData.rpm, 2);
-   rspPutHex(rVar.rCurPass, 2);
-   rspPutHex(zAxis.dro, sizeof(zAxis.dro));
-   rspPutHex(xAxis.dro, sizeof(xAxis.dro));
-   rspPutHex(rVar.rMvStatus, 2);
-   // rspPutHex(RUN_DATA_SIZE - runQue.count, 1);
-   rspPutHex(dbgQue.count, 1);
+     const P_DEBUG_DATA p = &dbgQue.data[dbgQue.emp]; /* get pointer to data */
+     dbgQue.emp++;		 /* update empty pointer */
+     if (dbgQue.emp >= DEBUG_DATA_SIZE) /* if past end */
+      dbgQue.emp = 0;		/* point back to beginning */
+
+     rspPut(p->dbg);
+     const char *p1 = (char *) &p->val;
+     for (int i = 0; i < sizeof(p->val); i++)
+      rspPut(*p1++);
+
+     sent += 1;
+    } while (val1 > 0);		/* while more requested */
+
+    if (sent > 0)
+    {
+     dbgPutStr("dbgMsg ");
+     dbgPutHexByte(dbgQue.count);
+     dbgPutSpace();
+     dbgPutHexByte(sent);
+     dbgNewLine();
+    }
+   }
    dbg = -1;
    break;
 
-  case R_READ_DBG:
-  {
-   remGetHex(&val1);
-   rspPutByte(parm);
-   do
-   {
-    if (dbgQue.count == 0 ||	/* if  no data */
-        RSP_BUF_SIZE - rspCtl.count < MAX_DBG_SIZE) /* of no space */
-     break;
+   case R_READ_ALL:
+    rspPutHexByte(parm);
+    rspPutHex(zAxis.curLoc, sizeof(zAxis.curLoc));
+    rspPutHex(xAxis.curLoc, sizeof(xAxis.curLoc));
+    rspPutHex(indexData.rpm, 2);
+    rspPutHex(rVar.rCurPass, 2);
+    rspPutHex(zAxis.dro, sizeof(zAxis.dro));
+    rspPutHex(xAxis.dro, sizeof(xAxis.dro));
+    rspPutHex(rVar.rMvStatus, 2);
+    rspPutHex(dbgQue.count, 1);
+    dbg = -1;
+    break;
 
-    val1 -= 1;
-    dbgQue.count -= 1;		/* count off a message */
-
-    const P_DEBUG_DATA p = &dbgQue.data[dbgQue.emp]; /* get pointer to data */
-    dbgQue.emp++;		 /* update empty pointer */
-    if (dbgQue.emp >= DEBUG_DATA_SIZE) /* if past end */
-     dbgQue.emp = 0;		/* point back to beginning */
-
-    rspPut(p->dbg);
-    const char *p1 = (char *) &p->val;
-    for (int i = 0; i < sizeof(p->val); i++)
-     rspPut(*p1++);
-
-   } while (val1 > 0);		/* while more requested */
-
-   if (rspCtl.count > 7)
-   {
-    dbgPutStr("dbgMsg ");
-    dbgPutHexByte(dbgQue.count);
-    dbgPutSpace();
-    dbgPutHexByte(rspCtl.count);
-    dbgNewLine();
-   }
-  }
-  dbg = -1;
-  break;
-
-  default:
-   break;
-  } /* end switch (parm) */
-
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "ConstantConditionsOC"
-  if (data != 0)
-  {
-   dbgPutHexByte(runQue.count);
-   dbgPutSpace();
-   dbgPutHexByte(runQue.fil);
-   dbgPutStr(" queued");
+   case R_STOP:
+    axisStop(&zAxis);
+    axisStop(&xAxis);
+    break;
    
-   if (n >= 1)
-   {
-    dbgPutSpace();
-    dbgPutHex(data->val1, 4);
-   }
+   case R_STOP_Z:
+    axisStop(&zAxis);
+    break;
+   
+   case R_STOP_X:
+    axisStop(&xAxis);
+    break;
 
-   if (n >= 2)
-   {
-    dbgPutSpace();
-    dbgPutHex(data->val2, 4);
-   }
+   case R_SETUP:
+    dbgPutStr("setup\n");
+    rVar.rMvStatus = 0;
+    runInit();
+    break;
 
-   runQue.fil += 1;
-   if (runQue.fil >= RUN_DATA_SIZE)
-    runQue.fil = 0;
-   runQue.count += 1;
-   dbgNewLine();
+   case R_RESUME:
+    dbgPutStr("resume\n");
+    if (runCtl.wait == RW_PAUSE)
+     runCtl.wait = RW_NONE;
+
+    if (rVar.rJogPause & DISABLE_JOG)
+     rVar.rJogPause &= ~(PAUSE_ENA_X_JOG | PAUSE_ENA_Z_JOG);
+
+    rVar.rMvStatus &= ~(MV_PAUSE | MV_MEASURE | MV_READ_X | MV_READ_Z);
+    break;
+
+   case R_DONE:
+    rVar.rMvStatus &= ~(MV_DONE);
+    rVar.rJogPause = 0;
+    break;
+
+   case R_SEND_DONE:
+    configSetup();
+    break;
+   
+   case R_SET_LOC_X:
+    CFS->ctl = RISCV_DATA;
+    setLoc(&xAxis, val1);
+    dbgMsg(D_XLOC, val1);
+    break;
+
+   case R_SET_LOC_Z:
+    CFS->ctl = RISCV_DATA;
+    ld(F_Ld_Cfg_Ctl, CFG_DRO_STEP | CFG_ZDRO_INV | CFG_XDRO_INV);
+    setLoc(&zAxis, val1);
+    dbgMsg(D_ZLOC, val1);
+    break;
+
+   case R_STR_SPIN:
+    spindleStart();
+    break;
+
+   case R_STP_SPIN:
+    spindleStop();
+    break;
+
+   case R_UPD_SPIN:
+    spindleUpdate();
+    break;
+
+   case R_SET_ACCEL:
+    saveAccel(val1, val2);
+    break;
+
+   case R_SET_DATA:
+   {
+    dbgPutStr("setData ");
+    dbgPutHexByte(val1);
+    dbgPutSpace();
+    dbgPutHex(val2, 4);
+    dbgNewLine();
+   
+    T_DATA_UNION val;
+    val.t_int = val2;
+    setRiscvVar(val1, val);
+   }
+   break;
+
+   case R_GET_DATA:
+   {
+    T_DATA_UNION val;
+    getRiscvVar(val1, &val);
+    rspPutHexByte(parm);
+    rspPutHex(val.t_int32_t, riscvSize[parm]);
+   }
+   break;
+
+   case R_JOG_Z:
+    jogMove(&zAxis, val1);
+    break;
+
+   case R_JOG_X:
+    jogMove(&xAxis, val1);
+    break;
+
+   case R_HOME_Z:
+    axisHome(&zAxis, val1);
+    break;
+
+   case R_HOME_X:
+    axisHome(&xAxis, val1);
+    break;
+
+   default:
+    break;
+   } /* end switch (parm) */
   }
-#pragma clang diagnostic pop
 
   // runProcess();
  } /* end while(true) */
 
  if (dbg > 0)
  {
-  dbgPutStr("&@&@ ");
+  dbgPutStr("@");
   dbgPutHexByte(dbg);
   dbgNewLine();
  }
 
  const int free = RUN_DATA_SIZE - runQue.count;
 
- // dbgNewLine();
- // dbgPutStr("que ");
- // dbgPutHex(free, 1);
- // dbgNewLine();
-
  rspPut('*');
+ #if 0
  rspReplHex(rspCtl.count - 3);
  rspReplHex(free);
+ #else
+ remPut('-');
+ remPutHexByte(rspCtl.count + 2);
+ remPutHexByte(free);
+ #endif
 
  remPutStrLen(rspCtl.buf, rspCtl.count);
  remSendStart();
@@ -598,18 +575,14 @@ void remCmd(void)
   const int tmp = remGet();
   if (tmp < 0)
   {
-   /* printf("end of buffer\n"); */
    break;
   }
   if (tmp == '\r')
    break;
-  /* printf("extra char %d\n", tmp); */
-  /* flushBuf(); */
  }
 
  runProcess();
 } /* end remCmd() */
-#pragma clang diagnostic pop
 
 void runInit(void)
 {
@@ -749,7 +722,6 @@ void runProcess(void)
 
    case R_PAUSE:
     dbgPutStr("pause\n");
-    // rVar.cmdPaused = 1;
 
     rVar.rJogPause = DISABLE_JOG | data->val1;
 
@@ -763,11 +735,11 @@ void runProcess(void)
     rVar.rMvStatus |= MV_PAUSE;
     break;
 
-   case R_START_SPIN:
+   case R_STR_SPIN_Q:
     runCtl.wait = RW_SPIN_START;
     break;
 
-   case R_STOP_SPIN:
+   case R_STP_SPIN_Q:
     runCtl.wait = RW_SPIN_STOP;
     break;
 
@@ -784,21 +756,19 @@ void runProcess(void)
     saveAccel(data->val1, data->val2);
     break;
    
-   case R_SAVE_Z:
-    zAxis.savedLoc = data->val1;
-    break;
-     
-   case R_SAVE_X:
-    xAxis.savedLoc = data->val1;
-    break;
-     
-   case R_HOFS_Z:
-    zAxis.homeOffset = data->val1;
-    break;
-     
-   case R_HOFS_X:
-    xAxis.homeOffset = data->val1;
-    break;
+   case R_SET_DATA_Q:
+   {
+    dbgPutStr("setDataQ ");
+    dbgPutHexByte(data->val1);
+    dbgPutSpace();
+    dbgPutHex(data->val2, 4);
+    dbgNewLine();
+   
+    T_DATA_UNION val;
+    val.t_int = data->val2;
+    setRiscvVar(data->val1, val);
+   }
+   break;
      
    case R_MOVE_Z:
     move(&zAxis, data->val1, data->val2);
@@ -817,6 +787,7 @@ void runProcess(void)
     break;
 
    default:
+    dbgPutStr("invalid cmd\n");
     break;
    }
   }
@@ -825,12 +796,14 @@ void runProcess(void)
 
 void spindleStart(void)
 {
+ ld(F_Ld_Out_Reg, OUT_PIN14);
  ld(F_PWM_Base + F_Ld_PWM_Max, rVar.rPwmDiv);
  ld(F_PWM_Base + F_Ld_PWM_Trig, rVar.rPwmCtr);
 }
 
 void spindleStop(void)
 {
+ ld(F_Ld_Out_Reg, 0);
  ld(F_PWM_Base + F_Ld_PWM_Max, 0);
  ld(F_PWM_Base + F_Ld_PWM_Trig, 0);
 }

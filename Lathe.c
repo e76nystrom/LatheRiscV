@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <neorv32.h>
 // #include "fpgaLatheReg.h"
 // #include "fpgaLatheBits.h"
@@ -6,11 +7,11 @@
 
 #define EXT
 #include "Lathe.h"
+#include "riscvCmdList.h"
 #include "axisCtl.h"
 // #include "dbgSerial.h"
 #include <ctlbits.h>
 #include <riscvStruct.h>
-#include <stdbool.h>
 
 #include "remSerial.h"
 #include "remCmd.h"
@@ -55,7 +56,7 @@ int main(void)
  neorv32_rte_setup();			/* setup vectors */
 
  neorv32_uart0_setup(DBG_BAUD_RATE, 0); /* init uart */
- neorv32_uart0_puts("\ndbg starting\n");
+ neorv32_uart0_puts("\ndbg starting " __DATE__ " " __TIME__"\n");
 
  neorv32_uart1_setup(REM_BAUD_RATE, 0); /* init uart */
  neorv32_uart1_puts("\nrem starting\n");

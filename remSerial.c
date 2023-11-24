@@ -6,7 +6,7 @@
 #include <string.h>
 #define EXT extern
 #include "remSerial.h"
-#include "dbgSerial.h"
+//#include "dbgSerial.h"
 
 #if defined(REM_SERIAL_INCLUDE)	// <-
 
@@ -56,14 +56,21 @@ void remRxSkip(int n);
 void remFill(const char *p, int n);
 
 void remPut(char ch);
-void remPutStrLen(const unsigned char *p, int size);
+void remPutDigit(char ch);
+void remPutHexByte(char ch);
+// ReSharper disable once CppConstParameterInDeclaration
+void remPutStrLen(const unsigned char *p, const int size);
 void remPutStr(const char *p);
-void remSndHex(const unsigned char *p, int size);
+// ReSharper disable once CppConstParameterInDeclaration
+void remPutHex(const unsigned char *p, const int size);
 
 int  remGet(void);
-char remGetHex(int *val);
 char remGetHexEcho(int *val);
+unsigned char remGetHexByte(void);
+char remGetHex(int *val);
+#if 0
 char regGetStr(char *buf, int bufLen);
+#endif
 
 uint32_t remRxReady(void);
 int remRxRead(void);
@@ -82,7 +89,7 @@ void remTxIntClr(void);
 
 inline uint32_t remRxReady(void)
 {
- return (NEORV32_UART1->CTRL & (1 << UART_CTRL_RX_NEMPTY));
+ return NEORV32_UART1->CTRL & 1 << UART_CTRL_RX_NEMPTY;
 }
 
 inline int remRxRead(void)
@@ -92,15 +99,15 @@ inline int remRxRead(void)
 
 inline uint32_t remTxEmpty(void)
 {
- return (NEORV32_UART1->CTRL & (1 << UART_CTRL_TX_EMPTY));
+ return NEORV32_UART1->CTRL & 1 << UART_CTRL_TX_EMPTY;
 }
 
 inline uint32_t remTxFull(void)
 {
- return (NEORV32_UART1->CTRL & (1 << UART_CTRL_TX_FULL));
+ return NEORV32_UART1->CTRL & 1 << UART_CTRL_TX_FULL;
 }
 
-inline void remTxSend(char ch)
+inline void remTxSend(const char ch)
 {
  NEORV32_UART1->DATA = (uint32_t) (ch << UART_DATA_RTX_LSB);
 }
@@ -136,7 +143,7 @@ inline void remTxIntClr(void)
 }
 
 #if 0
-static void remRxIsr(void) __attribute__ ((interrupt ("machine")));
+void remRxIsr(void) __attribute__ ((interrupt ("machine")));
 
 #pragma GCC optimize ("align-functions=4")
 
@@ -175,7 +182,7 @@ void remRxIsr(void)
  remRxIntClr();
 }
 
-static void remTxIsr(void) __attribute__ ((interrupt ("machine")));
+void remTxIsr(void) __attribute__ ((interrupt ("machine")));
 
 /*extern "C"*/
 void remTxIsr(void)
@@ -201,7 +208,7 @@ void remTxIsr(void)
 
 void remSerialSetup(void)
 {
- memset((void *) &remCtl, 0, sizeof(remCtl));
+ memset(&remCtl, 0, sizeof(remCtl));
 
 #if 0
  neorv32_rte_handler_install(UART1_RX_RTE_ID, &remRxIsr);
@@ -217,7 +224,7 @@ void remRecv(void)
 // while (remRxReady() != 0)	/* if received character */
  while (neorv32_uart_char_received(NEORV32_UART1))
  {
-  char ch = remRxRead();	/* read character */
+  const char ch = remRxRead();	/* read character */
   if (remCtl.state == 0)	/* if waiting for start */
   {
    if (ch == 1)			/* if start of message received */
@@ -290,10 +297,10 @@ void remPoll(void)
 
 int remCount(void)
 {
- return(remCtl.tx_count);
+ return remCtl.tx_count;
 }
 
-void remRxSkip(int n)
+void remRxSkip(const int n)
 {
  int emp = remCtl.rx_emp;
  emp += n;
@@ -303,18 +310,18 @@ void remRxSkip(int n)
  remCtl.rx_count -= n;
 }
 
-void remFill(const char *str, int n)
+void remFill(const char *p, int n)
 {
  int fill = remCtl.tx_save;
  while (--n >= 0)
  {
-  remCtl.tx_buffer[fill++] = *str++; /* put character in buffer */
+  remCtl.tx_buffer[fill++] = *p++; /* put character in buffer */
   if (fill >= REM_TX_SIZE)	/* if past end of buffer */
    fill = 0;			/* reset to zero */
  }
 }
 
-void remPut(char ch)
+void remPut(const char ch)
 {
  if (remCtl.tx_count < REM_TX_SIZE) /* if room for data */
  {
@@ -330,7 +337,24 @@ void remPut(char ch)
  }
 }
 
-void remPutStrLen(const unsigned char *p, int size)
+void remPutDigit(char ch)
+{
+ ch &= 0xf;
+ if (ch < 10)
+  ch += '0';
+ else
+  ch += 'a' - 10;
+ remPut(ch);
+}
+
+void remPutHexByte(const char ch)
+{
+ const char tmp = ch >> 4;
+ remPutDigit(tmp);
+ remPutDigit(ch);
+}
+
+void remPutStrLen(const unsigned char *p, const int size)
 {
  if (remCtl.tx_count + size < REM_TX_SIZE) /* if room for data */
  {
@@ -356,7 +380,7 @@ void remPutStr(const char *p)
 {
  while (true)
  {
-  char ch = *p++;
+  const char ch = *p++;
   if (ch == 0)
    break;
   remPut(ch);
@@ -365,10 +389,8 @@ void remPutStr(const char *p)
  }
 }
 
-void remSndHex(const unsigned char *p, int size)
+void remPutHex(const unsigned char *p, int size)
 {
- char tmp;
- char ch;
  int zeros = 0;
 
  p += size;
@@ -376,11 +398,11 @@ void remSndHex(const unsigned char *p, int size)
  {
   --size;
   p--;
-  tmp = *p;
-  ch = tmp;
+  char tmp = *p;
+  char ch = tmp;
   ch >>= 4;
   ch &= 0xf;
-  if ((ch != 0)
+  if (ch != 0
   ||  zeros)
   {
    zeros = 1;
@@ -392,7 +414,7 @@ void remSndHex(const unsigned char *p, int size)
   }
 
   tmp &= 0xf;
-  if ((tmp != 0)
+  if (tmp != 0
   ||  zeros)
   {
    zeros = 1;
@@ -412,7 +434,7 @@ int remGet(void)
  if (remCtl.rx_count != 0)	/* if anything in buffer */
  {
   int emp = remCtl.rx_emp;	/* temp copy of empty pointer */
-  unsigned char ch = remCtl.rx_buffer[emp++]; /* send character */
+  const unsigned char ch = remCtl.rx_buffer[emp++]; /* send character */
   if (emp >= REM_RX_SIZE)	/* if at buffer end */
    emp = 0;			/* reset to start */
   remCtl.rx_emp = emp;		/* save empty pointer */
@@ -420,33 +442,32 @@ int remGet(void)
 //  remRxIntDis();
   --remCtl.rx_count;		/* count it off */
 //  remRxIntEna();
-  return(ch);
+  return ch;
  }
- return(-1);			/* nothing in buffer */
+ return-1;			/* nothing in buffer */
 }
 
 char remGetHexEcho(int *val)
 {
- char ch;
  bool neg = false;
  int tmpVal = 0;
  int count = 0;
 
  while (count <= 8)
  {
-  int tmp = remGet();
+  const int tmp = remGet();
   if (tmp > 0)
   {
-   ch = (char) tmp;
-   if ((ch >= '0') &&
-       (ch <= '9'))
+   char ch = tmp;
+   if (ch >= '0' &&
+       ch <= '9')
    {
     remPut(ch);
     ch -= '0';
     count++;
    }
-   else if ((ch >= 'a') &&
-            (ch <= 'f'))
+   else if (ch >= 'a' &&
+            ch <= 'f')
    {
     remPut(ch);
     ch -= 'a' - 10;
@@ -470,12 +491,41 @@ char remGetHexEcho(int *val)
    tmpVal += ch;
   }
   else
-   return(0);
+   return 0;
  }
  if (neg)
   tmpVal = -tmpVal;
  *val = tmpVal;
- return(count != 0);
+ return count != 0;
+}
+
+unsigned char remGetHexByte(void)
+{
+ int count = 2;
+ int tmpVal = 0;
+
+ while (count > 0)
+ {
+  count -= 1;
+  const int tmp = remGet();
+  if (tmp > 0)
+  {
+   char ch = tmp;
+   if (ch >= '0' &&
+       ch <= '9')
+   {
+    ch -= '0';
+   }
+   else if (ch >= 'a' &&
+	    ch <= 'f')
+   {
+    ch -= 'a' - 10;
+   }
+   tmpVal <<= 4;
+   tmpVal += ch;
+  }
+ }
+ return tmpVal;
 }
 
 char remGetHex(int *val)
@@ -490,21 +540,21 @@ char remGetHex(int *val)
   if (tmp > 0)
   {
    char ch = tmp;
-   if ((ch >= '0') &&
-       (ch <= '9'))
+   if (ch >= '0' &&
+       ch <= '9')
    {
     ch -= '0';
     count++;
    }
-   else if ((ch >= 'a') &&
-	    (ch <= 'f'))
+   else if (ch >= 'a' &&
+	    ch <= 'f')
    {
     ch -= 'a' - 10;
     count++;
    }
    else if (ch == '-')
     neg = true;
-   else if ((ch == ' ') || (ch == '|') || (ch == '\r'))
+   else if (ch == ' ' || ch == '|' || ch == '\r')
     break;
    else
     continue;
@@ -513,13 +563,13 @@ char remGetHex(int *val)
   }
   else
   {
-   return(0);
+   return 0;
   }
  }
  if (neg)
   tmpVal = -tmpVal;
  *val = tmpVal;
- return(count != 0);
+ return count != 0;
 }
 
 #if 0
@@ -558,7 +608,6 @@ char remGetStr(char *buf, int bufLen)
  }
  return(len);
 }
-
 #endif
 
 #endif	/* LATHE_CPP_REM_SERIAL */

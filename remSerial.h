@@ -47,14 +47,21 @@ void remRxSkip(int n);
 void remFill(const char *p, int n);
 
 void remPut(char ch);
-void remPutStrLen(const unsigned char *p, int size);
+void remPutDigit(char ch);
+void remPutHexByte(char ch);
+// ReSharper disable once CppConstParameterInDeclaration
+void remPutStrLen(const unsigned char *p, const int size);
 void remPutStr(const char *p);
-void remSndHex(const unsigned char *p, int size);
+// ReSharper disable once CppConstParameterInDeclaration
+void remPutHex(const unsigned char *p, const int size);
 
 int  remGet(void);
-char remGetHex(int *val);
 char remGetHexEcho(int *val);
+unsigned char remGetHexByte(void);
+char remGetHex(int *val);
+#if 0
 char regGetStr(char *buf, int bufLen);
+#endif
 
 uint32_t remRxReady(void);
 int remRxRead(void);

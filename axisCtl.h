@@ -1,5 +1,8 @@
 #if !defined(AXIS_CTL_INC)	// <-
 #define AXIS_CTL_INC
+#include <stdbool.h>
+#include <riscvStruct.h>
+#include <ctlStates.h>
 
 #define R_DIR_POS 1
 #define R_DIR_NEG 0
@@ -46,7 +49,7 @@ typedef struct S_AXIS_CONSTANT
  char name;			/* axis name */
  int axisID;			/* axis identifier */
  struct S_AXIS_CTL *other;	/* pointer to other axis */
- int base;			/* command base for fpga */
+ int base;			/* axis command base for fpga */
  int accelOffset;		/* offset into accel table */
  int clkShift;			/* clk register shift */
  int statDone;			/* axis done flag */
@@ -55,7 +58,8 @@ typedef struct S_AXIS_CONSTANT
  int dbgBase;			/* base axis dbg types */
  int jogFlag;			/* jog enable flag */
  uint32_t *mpgData;		/* pointer to jog fifo */
- int *mpgJogInc;		/* mpg jog increment */
+ int homedBit;
+ int homeActiveBit;
 } T_AXIS_CONSTANT;
 
 typedef struct S_AXIS_CTL
@@ -64,6 +68,8 @@ typedef struct S_AXIS_CTL
  enum RISCV_AXIS_STATE_TYPE lastState; /* last state */
  enum MPG_STATE mpgState;	/* mpg state */
  enum MPG_STATE lastMpgState;	/* last mpg state */
+ enum H_STATES homeState;
+ enum H_STATES lastHomeState;
  int mpgInvert;			/* invert direction of mpg */
  int cmd;			/* current command flags */
  int dist;			/* distance to move */
@@ -73,9 +79,6 @@ typedef struct S_AXIS_CTL
  int curDist;			/* backlash distance */
  int curLoc;			/* current location */
  int expLoc;			/* expected location */
- int stepsInch;			/* steps per inch */
- int homeOffset;		/* home offset */
- int savedLoc;			/* save location for taper */
  int dro;			/* dro reading */
 
  int endLoc;
@@ -86,8 +89,8 @@ typedef struct S_AXIS_CTL
 
  uint32_t dirWaitStart;		/* dir change timer start */
  int backlashSteps;		/* backlash steps */
- int mpgAxisCtl;			/* axis control settings in mpg mode */
-
+ int mpgAxisCtl;		/* axis dtl mpg mode */
+ T_AXIS_VAR v;
  T_AXIS_CONSTANT c;		/* axis constant data */
 } T_AXIS_CTL, *P_AXIS_CTL;
 
@@ -114,6 +117,9 @@ void initAxisCtl(void);
 void axisCtl(void);
 void axisStateCheck(P_AXIS_CTL axis);
 void axisCheck(P_AXIS_CTL axis, int status);
+bool homeIsSet(P_AXIS_CTL axis);
+bool homeIsClr(P_AXIS_CTL axis);
+void homeCtl(P_AXIS_CTL axis);
 void move(P_AXIS_CTL axis, int cmd, int loc);
 void jogMove(P_AXIS_CTL axis, int dist);
 void jogMpg(P_AXIS_CTL axis);
@@ -122,6 +128,7 @@ void moveBacklash(P_AXIS_CTL axis);
 void setLoc(P_AXIS_CTL axis, int loc);
 void axisStop(P_AXIS_CTL a);
 void axisMove(P_AXIS_CTL a);
+void axisHome(P_AXIS_CTL axis, int homeCmd);
 void clockLoad(P_AXIS_CTL axis, int clkSel);
 void axisLoad(P_AXIS_CTL a, int index);
 

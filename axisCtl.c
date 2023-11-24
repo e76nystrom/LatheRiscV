@@ -1,7 +1,6 @@
 #define LATHECPP_AXIS_CTL
 
 #include <string.h>
-#include <stdbool.h>
 
 #include <neorv32.h>
 #include "ctlStates.h"
@@ -12,13 +11,16 @@
 #define EXT extern
 #include "lathe.h"
 #include "axisCtl.h"
+#include "remCmd.h"
 #include "fpga.h"
 #include "dbgSerial.h"
 //#include "remSerial.h"
-#include "remCmd.h"
-#include "riscvStruct.h"
+//#include "riscvStruct.h"
 
 #if defined(AXIS_CTL_INCLUDE)	// <-
+#include <stdbool.h>
+#include <riscvStruct.h>
+#include <ctlStates.h>
 
 #define R_DIR_POS 1
 #define R_DIR_NEG 0
@@ -65,7 +67,7 @@ typedef struct S_AXIS_CONSTANT
  char name;			/* axis name */
  int axisID;			/* axis identifier */
  struct S_AXIS_CTL *other;	/* pointer to other axis */
- int base;			/* command base for fpga */
+ int base;			/* axis command base for fpga */
  int accelOffset;		/* offset into accel table */
  int clkShift;			/* clk register shift */
  int statDone;			/* axis done flag */
@@ -74,7 +76,8 @@ typedef struct S_AXIS_CONSTANT
  int dbgBase;			/* base axis dbg types */
  int jogFlag;			/* jog enable flag */
  uint32_t *mpgData;		/* pointer to jog fifo */
- int *mpgJogInc;		/* mpg jog increment */
+ int homedBit;
+ int homeActiveBit;
 } T_AXIS_CONSTANT;
 
 typedef struct S_AXIS_CTL
@@ -83,6 +86,8 @@ typedef struct S_AXIS_CTL
  enum RISCV_AXIS_STATE_TYPE lastState; /* last state */
  enum MPG_STATE mpgState;	/* mpg state */
  enum MPG_STATE lastMpgState;	/* last mpg state */
+ enum H_STATES homeState;
+ enum H_STATES lastHomeState;
  int mpgInvert;			/* invert direction of mpg */
  int cmd;			/* current command flags */
  int dist;			/* distance to move */
@@ -92,9 +97,6 @@ typedef struct S_AXIS_CTL
  int curDist;			/* backlash distance */
  int curLoc;			/* current location */
  int expLoc;			/* expected location */
- int stepsInch;			/* steps per inch */
- int homeOffset;		/* home offset */
- int savedLoc;			/* save location for taper */
  int dro;			/* dro reading */
 
  int endLoc;
@@ -105,8 +107,8 @@ typedef struct S_AXIS_CTL
 
  uint32_t dirWaitStart;		/* dir change timer start */
  int backlashSteps;		/* backlash steps */
- int mpgAxisCtl;			/* axis control settings in mpg mode */
-
+ int mpgAxisCtl;		/* axis dtl mpg mode */
+ T_AXIS_VAR v;
  T_AXIS_CONSTANT c;		/* axis constant data */
 } T_AXIS_CTL, *P_AXIS_CTL;
 
@@ -133,6 +135,9 @@ void initAxisCtl(void);
 void axisCtl(void);
 void axisStateCheck(P_AXIS_CTL axis);
 void axisCheck(P_AXIS_CTL axis, int status);
+bool homeIsSet(P_AXIS_CTL axis);
+bool homeIsClr(P_AXIS_CTL axis);
+void homeCtl(P_AXIS_CTL axis);
 void move(P_AXIS_CTL axis, int cmd, int loc);
 void jogMove(P_AXIS_CTL axis, int dist);
 void jogMpg(P_AXIS_CTL axis);
@@ -141,6 +146,7 @@ void moveBacklash(P_AXIS_CTL axis);
 void setLoc(P_AXIS_CTL axis, int loc);
 void axisStop(P_AXIS_CTL a);
 void axisMove(P_AXIS_CTL a);
+void axisHome(P_AXIS_CTL axis, int homeCmd);
 void clockLoad(P_AXIS_CTL axis, int clkSel);
 void axisLoad(P_AXIS_CTL a, int index);
 
@@ -152,16 +158,16 @@ char *fmtDist(char *buf, P_AXIS_CTL axis, int dist);
 
 char *fmtLoc(char *buf, const P_AXIS_CTL axis, int loc)
 {
- loc -= axis->homeOffset;
+ loc -= axis->v.homeOffset;
  loc *= 10000;
- loc /= axis->stepsInch;
+ loc /= axis->v.stepsInch;
  return dbgFmtNum(buf, loc);
 }
 
 char *fmtDist(char *buf, const P_AXIS_CTL axis, int dist)
 {
  dist *= 10000;
- dist /= axis->stepsInch;
+ dist /= axis->v.stepsInch;
  return dbgFmtNum(buf, dist);
 }
 
@@ -185,36 +191,38 @@ T_AXIS_CTL xAxis;
 
 T_AXIS_CONSTANT zInitData =
 {
- .name        = 'z',
- .axisID      = RA_Z_AXIS,
- .other       = &xAxis,
- .base        = F_ZAxis_Base,
- .accelOffset = RP_Z_BASE,
- .clkShift    = Z_FREQ_SHIFT,
- .statDone    = Z_AXIS_DONE,
- .statEna     = Z_AXIS_ENA,
- .waitState   = RW_WAIT_Z,
- .dbgBase     = D_ZBASE,
- .jogFlag     = PAUSE_ENA_Z_JOG,
- .mpgData     = (uint32_t *) &CFS->zMpg,
- .mpgJogInc   = &rVar.rZJogInc,
+ .name          = 'z',
+ .axisID        = RA_Z_AXIS,
+ .other         = &xAxis,
+ .base          = F_ZAxis_Base,
+ .accelOffset   = RP_Z_BASE,
+ .clkShift      = Z_FREQ_SHIFT,
+ .statDone      = Z_AXIS_DONE,
+ .statEna       = Z_AXIS_ENA,
+ .waitState     = RW_WAIT_Z,
+ .dbgBase       = D_ZBASE,
+ .jogFlag       = PAUSE_ENA_Z_JOG,
+ .mpgData       = (uint32_t *) &CFS->zMpg,
+ .homedBit      = MV_Z_HOME,
+ .homeActiveBit = MV_Z_HOME_ACTIVE,
 };
 
 T_AXIS_CONSTANT xInitData =
 {
- .name        = 'x',
- .axisID      = RA_X_AXIS,
- .other       = &zAxis,
- .base        = F_XAxis_Base,
- .accelOffset = RP_X_BASE,
- .clkShift    = X_FREQ_SHIFT,
- .statDone    = X_AXIS_DONE,
- .statEna     = X_AXIS_ENA,
- .waitState   = RW_WAIT_X,
- .jogFlag     = PAUSE_ENA_X_JOG,
- .dbgBase     = D_XBASE,
- .mpgData     = (uint32_t *) &CFS->xMpg,
- .mpgJogInc   = &rVar.rXJogInc,
+ .name          = 'x',
+ .axisID        = RA_X_AXIS,
+ .other         = &zAxis,
+ .base          = F_XAxis_Base,
+ .accelOffset   = RP_X_BASE,
+ .clkShift      = X_FREQ_SHIFT,
+ .statDone      = X_AXIS_DONE,
+ .statEna       = X_AXIS_ENA,
+ .waitState     = RW_WAIT_X,
+ .dbgBase       = D_XBASE,
+ .jogFlag       = PAUSE_ENA_X_JOG,
+ .mpgData       = (uint32_t *) &CFS->xMpg,
+ .homedBit      = MV_X_HOME,
+ .homeActiveBit = MV_X_HOME_ACTIVE,
 };
 
 void initAxisCtl(void)
@@ -417,6 +425,7 @@ void axisCheck(const P_AXIS_CTL axis, const int status)
  else
  {
   jogMpg(axis);
+  homeCtl(axis);
  }
 #endif
  
@@ -433,6 +442,95 @@ void axisCheck(const P_AXIS_CTL axis, const int status)
  }
  else
   axis->ignore = 0;
+}
+
+bool homeIsSet(const P_AXIS_CTL axis)
+{
+ const int status = rd(axis->c.base + F_Sync_Base + F_Rd_Axis_Status);
+ return (status & AX_HOME_STATUS) != 0;
+}
+
+bool homeIsClr(const P_AXIS_CTL axis)
+{
+ const int status = rd(axis->c.base + F_Sync_Base + F_Rd_Axis_Status);
+ return (status & AX_HOME_STATUS) == 0;
+}
+
+void homeCtl(const P_AXIS_CTL axis)
+{
+#if DBGMSG
+ if (axis->state != axis->prev)
+ {
+  printf("home state %d prev %d\n", axis->homeSate, axis->lastHome);
+  dbgMsg(D_HST, axis->homeState);
+  axis->lastHomeState = axis->homeState;
+ }
+#endif
+
+ switch (axis->homeState)
+ {
+ case H_IDLE:			/* 0x00 idle */
+  break;
+
+ case H_HOME:			/* 0x01 found home switch */
+  if (homeIsSet(axis))		/* if home switch set */
+  {
+   moveRel(axis, -axis->v.homeFindFwd, CMD_JOG | CLEAR_HOME); /* move off switch */
+   axis->homeState = H_OFF_HOME;	/* off home state */
+  }
+  else
+  {				/* if did not find switch */
+   axis->v.homeStatus = HOME_FAIL; /* set failure status */
+   axis->homeState = H_IDLE;	/* return to idle state */
+  }
+  break;
+
+ case H_OFF_HOME:		/* 0x02 move off home switch */
+  if (homeIsClr(axis))		/* if home switch open */
+  {
+   moveRel(axis, axis->v.homeBackoff, CMD_JOG); /* move to backoff dist */
+   axis->homeState = H_BACKOFF;	/* backoff state */
+  }
+  else
+  {
+   axis->v.homeStatus = HOME_FAIL; /* set failure status */
+   axis->homeState = H_IDLE;	/* return to idle state */
+  }
+  break;
+
+ case H_BACKOFF:		/* 0x03 wait for backoff complete */
+  if (homeIsClr(axis))		/* if clear of switch */
+  {
+   moveRel(axis, axis->v.homeSlow, JOG_SLOW | FIND_HOME); /* move back slowly */
+   axis->homeState = H_SLOW;	/* advance to wait */
+  }
+  else
+  {				/* if did not find switch */
+   axis->v.homeStatus = HOME_FAIL; /* set failure status */
+   axis->homeState = H_IDLE;	/* return to idle state */
+  }
+  break;
+
+ case H_SLOW:			/* 0x04 wait to find switch */
+ {
+  int tmp = rVar.rMvStatus;
+  tmp &= ~axis->c.homeActiveBit; /* home complete */
+  if (homeIsSet(axis))		/* if successful */
+  {
+   axis->v.homeStatus = HOME_SUCCESS; /* set flag */
+
+   tmp |= axis->c.homedBit;	/* indicate homed */
+   axis->curLoc = 0;		/* set position to zero */
+   axis->dro = 0;		/* set dro position to zero */
+  } else			/* if failure */
+  {
+   axis->v.homeStatus = HOME_FAIL; /* set failed flag */
+  }
+  rVar.rMvStatus = tmp;
+  axis->homeState = H_IDLE;	/* back to idle state */
+ }
+ break;
+ } /* switch */
 }
 
 void move(const P_AXIS_CTL axis, const int cmd, const int loc)
@@ -529,7 +627,7 @@ void jogMpg(const P_AXIS_CTL axis)
    axis->mpgState = MPG_DIR_CHANGE_WAIT; /* wait for stop */
   }
 
-  int dist = *axis->c.mpgJogInc;
+  int dist = axis->v.jogInc;
   if (dist == 0)		/* if continuous */
   {
    if (mpgDelta < MPG_SLOW)	/* if fast jog */
@@ -546,13 +644,13 @@ void jogMpg(const P_AXIS_CTL axis)
    // ld(axis->c.base + F_Ld_Freq, ctr);
   }
 
-  ld(axis->c.base + F_Sync_Base + F_Ld_Dist, dist); /* set min dist to go */
+  ld(axis->c.base + F_Sync_Base + F_Ld_Dist, dist); /* set dist to go */
  }
  break;
 
  case MPG_DIR_CHANGE_WAIT:
  {
-  const int axisStat = rd(axis->c.base + F_Rd_Status); /* read axis status */
+  const int axisStat = rd(axis->c.base + F_Rd_Status); /* read status */
   if ((axisStat & AX_DIST_ZERO) == 0 ||	/* if axis active */
       millis() - axis->dirWaitStart > MPG_WAIT_DELAY) /* or delay done */
   {
@@ -580,7 +678,7 @@ void jogMpg(const P_AXIS_CTL axis)
 
  case MPG_WAIT_BACKLASH:
  {
-  const int axisStat = rd(axis->c.base + F_Rd_Axis_Status); /* read axis status */
+  const int axisStat = rd(axis->c.base + F_Rd_Axis_Status); /* read status */
   if ((axisStat & AX_DIST_ZERO) != 0) /* if done */
   {
    ld(axis->c.base + F_Ld_Axis_Ctl, axis->mpgAxisCtl); /* clear backlash */
@@ -718,11 +816,11 @@ void axisMove(const P_AXIS_CTL a)
   {
    const P_AXIS_CTL aT = a->c.other;	/* get other axis */
    aT->curLoc = (int) rd(aT->c.base + F_Sync_Base + F_Rd_Loc);
-   dbgMsg(aT->c.dbgBase + D_MOV, aT->savedLoc);
+   dbgMsg(aT->c.dbgBase + D_MOV, aT->v.savedLoc);
    dbgMsg(aT->c.dbgBase + D_CUR, aT->curLoc);
-   aT->expLoc = aT->savedLoc;
+   aT->expLoc = aT->v.savedLoc;
 
-   int slvDist = aT->savedLoc - aT->curLoc;
+   int slvDist = aT->v.savedLoc - aT->curLoc;
    dbgMsg(aT->c.dbgBase + D_DST, slvDist);
 
    int slvCtl = CTL_SLAVE;
@@ -769,6 +867,55 @@ void axisMove(const P_AXIS_CTL a)
   const int tmp = a->ctlFlag | CTL_START;
   dbgMsg(a->c.dbgBase + D_ACTL, tmp);
   ld(a->c.base + F_Ld_Axis_Ctl, tmp);
+ }
+}
+
+void axisHome(const P_AXIS_CTL axis, const int homeCmd)
+{
+ if (axis->state == RS_IDLE)	/* if axis idle */
+ {
+  axis->v.homeStatus = HOME_ACTIVE;
+  // axis->setActive = MV_Z_HOME_ACTIVE;
+  // axis->clrActive = ~MV_Z_HOME_ACTIVE;
+  // axis->setHomed = MV_Z_HOME;
+  // axis->clrHomed = ~MV_Z_HOME;
+  int dist;
+  int flag;
+  if (homeCmd == HOME_FWD)	/* if forward homing*/
+  {
+   if (homeIsClr(axis))	/* if home switch open */
+   {
+    dist = axis->v.homeFindFwd;
+    flag = CMD_JOG | FIND_HOME;
+    axis->homeState = H_HOME;	/* find home forward */
+   }
+   else
+   {
+    dist = -axis->v.homeFindFwd;
+    flag = CMD_JOG | CLEAR_HOME;
+    axis->homeState = H_OFF_HOME; /* move off home switch */
+   }
+  }
+  else				/* if reverse homing */
+  {
+   if (homeIsClr(axis))	/* if home switch hope */
+   {
+    dist = axis->v.homeFindRev;
+    flag = CMD_JOG | FIND_HOME;
+    axis->homeState = H_HOME;	/* find home */
+   }
+   else
+   {
+    dist = -axis->v.homeFindFwd;
+    flag = CMD_JOG | CLEAR_HOME;
+    axis->homeState = H_OFF_HOME; /* move off home switch */
+   }
+  }
+  moveRel(axis, dist, flag);
+  int tmp = rVar.rMvStatus;
+  tmp &= ~axis->c.homedBit;  /* set not homed */
+  tmp |= axis->c.homeActiveBit; /* set home active */
+  rVar.rMvStatus = tmp;
  }
 }
 

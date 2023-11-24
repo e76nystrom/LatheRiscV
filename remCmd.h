@@ -1,5 +1,6 @@
 #if !defined(REM_CMD_INC)	// <-
 #define REM_CMD_INC
+#include "riscvCmdList.h"
 
 typedef struct S_RUN_DATA
 {
@@ -58,11 +59,13 @@ void runProcess(void);
 
 void rspPut(char ch);
 void rspPutDigit(char ch);
-void rspPutByte(char ch);
+void rspPutHexByte(char ch);
 
+#if 0
 void rspReplDigit(unsigned char ch);
 void rspReplByte(unsigned char ch);
 void rspReplHex(unsigned char ch);
+#endif
 
 void rspPutHex(unsigned int val, int size);
 

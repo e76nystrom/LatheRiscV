@@ -1,5 +1,6 @@
 #if !defined(RISCV_STRUCT)
 #define RISCV_STRUCT
+// c1File
 
 #include <stdint.h>
 
@@ -34,13 +35,23 @@ typedef struct sRiscvVar
  int rPRpm;             /* 0x04 R_P_RPM          spindle rpm */
  int rPwmDiv;           /* 0x05 R_PWM_DIV        pwm divider */
  int rPwmCtr;           /* 0x06 R_PWM_CTR        pwm counter maxy */
- int rPXLoc;            /* 0x07 R_P_X_LOC         */
- int rPZLoc;            /* 0x08 R_P_Z_LOC         */
- int rPXDro;            /* 0x09 R_P_X_DRO         */
- int rPZDro;            /* 0x0a R_P_Z_DRO         */
- int rXJogInc;          /* 0x0b R_X_JOG_INC       */
- int rZJogInc;          /* 0x0c R_Z_JOG_INC       */
 } T_RISCV_VAR, *P_RISCV_VAR;
+
+typedef struct
+{
+ int stepsInch;
+ int savedLoc;
+ int homeOffset;
+ int loc;
+ int dro;
+ int jogInc;
+ int homeStatus;
+ int homeFindFwd;
+ int homeFindRev;
+ int homeBackoff;
+ int homeSlow;
+}
+T_AXIS_VAR, *P_AXIS_VAR;
 
 extern unsigned char riscvSize[];
 extern T_RISCV_VAR rVar;
