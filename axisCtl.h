@@ -1,8 +1,10 @@
 #if !defined(AXIS_CTL_INC)	// <-
 #define AXIS_CTL_INC
-#include <stdbool.h>
+// #include <stdbool.h>
 #include <riscvStruct.h>
 #include <ctlStates.h>
+
+#define INPUT_TEST
 
 #define R_DIR_POS 1
 #define R_DIR_NEG 0
@@ -60,6 +62,12 @@ typedef struct S_AXIS_CONSTANT
  uint32_t *mpgData;		/* pointer to jog fifo */
  int homedBit;
  int homeActiveBit;
+#if defined(INPUT_TEST)
+ int inMask;
+ int inMinus;
+ int inPlus;
+ int inHome;
+#endif
 } T_AXIS_CONSTANT;
 
 typedef struct S_AXIS_CTL
@@ -90,6 +98,7 @@ typedef struct S_AXIS_CTL
  uint32_t dirWaitStart;		/* dir change timer start */
  int backlashSteps;		/* backlash steps */
  int mpgAxisCtl;		/* axis dtl mpg mode */
+ int inputStatus;		/* input signal status */
  T_AXIS_VAR v;
  T_AXIS_CONSTANT c;		/* axis constant data */
 } T_AXIS_CTL, *P_AXIS_CTL;
@@ -112,13 +121,22 @@ EXT int clockSelVal;
 #define FPGA_FREQUENCY 50000000
 #define INDEX_INTERVAL 100
 
+char *fmtLoc(char *buf, P_AXIS_CTL axis, int loc);
+char *fmtDist(char *buf, P_AXIS_CTL axis, int dist);
+
 void initAccelTable(void);
 void initAxisCtl(void);
+
+void dbgStatus(int status);
+void dbgAxisCtl(char name, int val);
+void dbgMvStatus(int val);
+void dbgJogPause(int val);
+void dbgAxisStatus(const P_AXIS_CTL axis);
+void dbgInPin(const int val);
+
 void axisCtl(void);
 void axisStateCheck(P_AXIS_CTL axis);
 void axisCheck(P_AXIS_CTL axis, int status);
-bool homeIsSet(P_AXIS_CTL axis);
-bool homeIsClr(P_AXIS_CTL axis);
 void homeCtl(P_AXIS_CTL axis);
 void move(P_AXIS_CTL axis, int cmd, int loc);
 void jogMove(P_AXIS_CTL axis, int dist);
@@ -126,13 +144,10 @@ void jogMpg(P_AXIS_CTL axis);
 void moveRel(P_AXIS_CTL axis, int dist, int cmd);
 void moveBacklash(P_AXIS_CTL axis);
 void setLoc(P_AXIS_CTL axis, int loc);
-void axisStop(P_AXIS_CTL a);
-void axisMove(P_AXIS_CTL a);
+void axisStop(P_AXIS_CTL axis);
+void axisMove(P_AXIS_CTL axis);
 void axisHome(P_AXIS_CTL axis, int homeCmd);
 void clockLoad(P_AXIS_CTL axis, int clkSel);
-void axisLoad(P_AXIS_CTL a, int index);
-
-char *fmtLoc(char *buf, P_AXIS_CTL axis, int loc);
-char *fmtDist(char *buf, P_AXIS_CTL axis, int dist);
+void axisLoad(P_AXIS_CTL axis, int index);
 
 #endif  /* AXIS_CTL_INC */	// ->

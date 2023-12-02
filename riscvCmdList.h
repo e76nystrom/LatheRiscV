@@ -25,8 +25,8 @@ enum RISCV_CMD
  R_GET_DATA,                    /* 0x11 'GD' set data */
  R_JOG_Z,                       /* 0x12 'JZ' jog move z */
  R_JOG_X,                       /* 0x13 'JX' jog move x */
- R_HOME_Z,                      /* 0x14 'MZ' home z */
- R_HOME_X,                      /* 0x15 'MX' home x */
+ R_HOME_Z,                      /* 0x14 'HZ' home z */
+ R_HOME_X,                      /* 0x15 'HX' home x */
  R_OP_START,                    /* 0x16 'OS' start first queued command */
  R_OP_DONE,                     /* 0x17 'OD' done */
  R_PAUSE,                       /* 0x18 'PA' pause */
@@ -37,9 +37,8 @@ enum RISCV_CMD
  R_SET_DATA_Q,                  /* 0x1d 'SD' set data */
  R_MOVE_Z,                      /* 0x1e 'MZ' move z */
  R_MOVE_X,                      /* 0x1f 'MX' move x */
- R_MOVE_REL_Z,                  /* 0x20 'HZ' move rel z */
- R_MOVE_REL_X,                  /* 0x21 'HX' move rel x */
- R_MAX_CMD,                     /* 0x22 'MX' maximum command */
+ R_MOVE_REL_Z,                  /* 0x20 'RZ' move rel z */
+ R_MOVE_REL_X,                  /* 0x21 'RX' move rel x */
 };
 
 #endif  /* RISCV_CMD_LIST */

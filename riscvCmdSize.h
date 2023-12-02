@@ -23,8 +23,8 @@ int riscvCmdSize[] =
  1,     /*  R_GET_DATA       0x11 17 'GD' set data */
  0,     /*  R_JOG_Z          0x12 18 'JZ' jog move z */
  0,     /*  R_JOG_X          0x13 19 'JX' jog move x */
- 1,     /*  R_HOME_Z         0x14 20 'MZ' home z */
- 1,     /*  R_HOME_X         0x15 21 'MX' home x */
+ 1,     /*  R_HOME_Z         0x14 20 'HZ' home z */
+ 1,     /*  R_HOME_X         0x15 21 'HX' home x */
  0,     /*  R_OP_START       0x16 22 'OS' start first queued command */
  0,     /*  R_OP_DONE        0x17 23 'OD' done */
  0,     /*  R_PAUSE          0x18 24 'PA' pause */
@@ -35,9 +35,8 @@ int riscvCmdSize[] =
  2,     /*  R_SET_DATA_Q     0x1d 29 'SD' set data */
  2,     /*  R_MOVE_Z         0x1e 30 'MZ' move z */
  2,     /*  R_MOVE_X         0x1f 31 'MX' move x */
- 2,     /*  R_MOVE_REL_Z     0x20 32 'HZ' move rel z */
- 2,     /*  R_MOVE_REL_X     0x21 33 'HX' move rel x */
- 0,     /*  R_MAX_CMD        0x22 34 'MX' maximum command */
+ 2,     /*  R_MOVE_REL_Z     0x20 32 'RZ' move rel z */
+ 2,     /*  R_MOVE_REL_X     0x21 33 'RX' move rel x */
 };
 
 #endif  /* RISCV_CMD_SIZE */

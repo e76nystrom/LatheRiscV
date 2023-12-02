@@ -7,9 +7,10 @@
 
 #define EXT
 #include "Lathe.h"
-#include "riscvCmdList.h"
+// #include "riscvCmdList.h"
+#include "fpgaLatheBits.h"
 #include "axisCtl.h"
-// #include "dbgSerial.h"
+#include "dbgSerial.h"
 #include <ctlbits.h>
 #include <riscvStruct.h>
 
@@ -61,11 +62,17 @@ int main(void)
  neorv32_uart1_setup(REM_BAUD_RATE, 0); /* init uart */
  neorv32_uart1_puts("\nrem starting\n");
 
+#if defined(INPUT_TEST)
+ CFS->ctl = RISCV_IN_TEST;	/* ***testing inputs*** */
+ dbgPutStr("\n***testing inputs***\n");
+#endif
+
  neorv32_gpio_port_set(1);
 
  remSerialSetup();
  initAccelTable();
  runInit();
+ remCmdInit();
  initAxisCtl();
 
  // int tmp = 0x12345678;
@@ -82,6 +89,29 @@ int main(void)
   const int clkPolarity = 0;
   const int irqMask = 0;
   neorv32_spi_setup(prsc, cDiv, clkPhase, clkPolarity, irqMask);
+ }
+
+ #include "fpgaLatheReg.h"
+ 
+ ld(F_Ld_Cfg_Ctl, CFG_ZHOME_INV | CFG_ZMINUS_INV |
+    CFG_ZPLUS_INV | CFG_PROBE_INV);
+
+ int mask = 1;
+ for (int i = 0; i < INPUTS_SIZE; i++)
+ {
+  CFS->inPin = mask;
+  dbgPutStr("mask   ");
+  dbgInPin(mask);
+
+  dbgPutStr("inputs ");
+  dbgInPin(rd(F_Rd_Inputs));
+
+  dbgPutStr("z axis ");
+  dbgAxisStatus(&zAxis);
+
+  dbgPutStr("x axis ");
+  dbgAxisStatus(&xAxis);
+  mask <<= 1;
  }
 
 #if 0

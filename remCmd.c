@@ -70,6 +70,7 @@ typedef struct S_DEBUG_QUE
 
 EXT T_DEBUG_QUE dbgQue;
 
+void remCmdInit(void);
 void remCmd(void);
 
 void runInit(void);
@@ -123,7 +124,7 @@ void dbgMsg(const int dbg, const int val)
  dbgPutStr("dbgMsg ");
  dbgPutHexByte(dbgQue.count);
  dbgPutSpace();
- const char *p = (char *) &dMessageStr[dbg];
+ const char *p = &dMessageStr[dbg].c0;
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p++);
@@ -265,6 +266,16 @@ void rspPutHex(unsigned int val, int size)
 #include "riscvCmdStr.h"
 #include "riscvCmdSize.h"
 
+char cmdPrtDisable[RISCV_CMD_STR_SIZE];
+
+void remCmdInit()
+{
+ memset(&cmdPrtDisable, 0, RISCV_CMD_STR_SIZE);
+ cmdPrtDisable[R_READ_DBG] = 1;
+ cmdPrtDisable[R_READ_ALL] = 1;
+ cmdPrtDisable[R_GET_DATA] = 1;
+}
+
 int dbg;
 
 void remCmd(void)
@@ -297,7 +308,9 @@ void remCmd(void)
   if (remGetHex(&parm) == 0)	/* read parameter */
    break;
 
-  if (parm > R_READ_ALL)
+  // if (parm > R_READ_ALL &&
+  //     parm != R_GET_DATA)
+  if (cmdPrtDisable[parm] == 0)
   {
    // dbgPutHexByte(tmp1);
    // dbgPutSpace();
@@ -321,9 +334,9 @@ void remCmd(void)
 
    dbgPutHexByte(parm);
    dbgPutSpace();
-   if ((parm & 0xff) < R_MAX_CMD)
+   if ((parm & 0xff) < RISCV_CMD_STR_SIZE)
    {
-    const char *p = (char *) &riscvCmdStr[parm];
+    const char *p = &riscvCmdStr[parm].c0;
     dbgPutC(*p++);
     dbgPutC(*p);
     dbgPutSpace();
@@ -470,6 +483,27 @@ void remCmd(void)
 
    case R_SEND_DONE:
     configSetup();
+    {
+     char locBuf[16];
+     const int *p = &zAxis.v.testLimMin;
+     dbgPutC('z');
+     for (int i = 0; i < 4; i++)
+     {
+      dbgPutSpace();
+      fmtLoc(locBuf, &zAxis, *p++);
+      dbgPutStr(locBuf);
+     }
+     dbgNewLine();
+     dbgPutC('x');
+     p = &xAxis.v.testLimMin;
+     for (int i = 0; i < 4; i++)
+     {
+      dbgPutSpace();
+      fmtLoc(locBuf, &xAxis, *p++);
+      dbgPutStr(locBuf);
+     }
+     dbgNewLine();
+    }
     break;
    
    case R_SET_LOC_X:
@@ -679,9 +713,9 @@ void runProcess(void)
    dbgPutStr("q ");
    dbgPutHexByte(parm);
    dbgPutSpace();
-   if (parm < R_MAX_CMD)
+   if (parm < RISCV_CMD_STR_SIZE)
    {
-    const char *p = (char *) &riscvCmdStr[parm];
+    const char *p = &riscvCmdStr[parm].c0;
     dbgPutC(*p++);
     dbgPutC(*p);
    }
@@ -833,7 +867,7 @@ void saveAccel(const int type, const int val)
  dbgPutStr("saveAccel ");
  dbgPutHex(type, 2);
  dbgPutSpace();
- const char *p = (char *) &axisAccelTypeStr[tmp.bVal[1]];
+ const char *p = &axisAccelTypeStr[tmp.bVal[1]].c0;
  dbgPutC(*p++);
  dbgPutC(*p);
  dbgPutSpace();

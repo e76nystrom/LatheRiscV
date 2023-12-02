@@ -34,17 +34,27 @@ unsigned char riscvSize[] =
  sizeof(zAxis.v.homeFindRev),           /* 0x0f max rev homing distance */
  sizeof(zAxis.v.homeBackoff),           /* 0x10 home backoff dist */
  sizeof(zAxis.v.homeSlow),              /* 0x11 home backoff dist */
- sizeof(xAxis.v.stepsInch),             /* 0x12 steps per inch */
- sizeof(xAxis.v.savedLoc),              /* 0x13 saved for que op */
- sizeof(xAxis.v.homeOffset),            /* 0x14 home offset */
- sizeof(xAxis.v.loc),                   /* 0x15 location */
- sizeof(xAxis.v.dro),                   /* 0x16 dro */
- sizeof(xAxis.v.jogInc),                /* 0x17 jog increment */
- sizeof(xAxis.v.homeStatus),            /* 0x18 home status */
- sizeof(xAxis.v.homeFindFwd),           /* 0x19 max homing distance */
- sizeof(xAxis.v.homeFindRev),           /* 0x1a max rev homing distance */
- sizeof(xAxis.v.homeBackoff),           /* 0x1b home backoff dist */
- sizeof(xAxis.v.homeSlow),              /* 0x1c home backoff dist */
+ sizeof(zAxis.v.testLimMin),            /* 0x12 test minimum limit */
+ sizeof(zAxis.v.testLimMax),            /* 0x13 test maximum limit */
+ sizeof(zAxis.v.testHomeMin),           /* 0x14 test home minimum */
+ sizeof(zAxis.v.testHomeMax),           /* 0x15 test home maximum */
+ sizeof(zAxis.v.testProbe),             /* 0x16 test probe position */
+ sizeof(xAxis.v.stepsInch),             /* 0x17 steps per inch */
+ sizeof(xAxis.v.savedLoc),              /* 0x18 saved for que op */
+ sizeof(xAxis.v.homeOffset),            /* 0x19 home offset */
+ sizeof(xAxis.v.loc),                   /* 0x1a location */
+ sizeof(xAxis.v.dro),                   /* 0x1b dro */
+ sizeof(xAxis.v.jogInc),                /* 0x1c jog increment */
+ sizeof(xAxis.v.homeStatus),            /* 0x1d home status */
+ sizeof(xAxis.v.homeFindFwd),           /* 0x1e max homing distance */
+ sizeof(xAxis.v.homeFindRev),           /* 0x1f max rev homing distance */
+ sizeof(xAxis.v.homeBackoff),           /* 0x20 home backoff dist */
+ sizeof(xAxis.v.homeSlow),              /* 0x21 home backoff dist */
+ sizeof(xAxis.v.testLimMin),            /* 0x22 test minimum limit */
+ sizeof(xAxis.v.testLimMax),            /* 0x23 test maximum limit */
+ sizeof(xAxis.v.testHomeMin),           /* 0x24 test home minimum */
+ sizeof(xAxis.v.testHomeMax),           /* 0x25 test home maximum */
+ sizeof(xAxis.v.testProbe),             /* 0x26 test probe position */
 };
 
 T_AXIS_VAR zAxisVar;
@@ -129,48 +139,88 @@ void setRiscvVar(const int parm, const T_DATA_UNION val)
   zAxis.v.homeSlow = val.t_int;
   break;
 
- case R_X_STEPS_INCH:            /* 18 0x12 steps per inch */
+ case R_Z_TEST_LIM_MIN:          /* 18 0x12 test minimum limit */
+  zAxis.v.testLimMin = val.t_int;
+  break;
+
+ case R_Z_TEST_LIM_MAX:          /* 19 0x13 test maximum limit */
+  zAxis.v.testLimMax = val.t_int;
+  break;
+
+ case R_Z_TEST_HOME_MIN:         /* 20 0x14 test home minimum */
+  zAxis.v.testHomeMin = val.t_int;
+  break;
+
+ case R_Z_TEST_HOME_MAX:         /* 21 0x15 test home maximum */
+  zAxis.v.testHomeMax = val.t_int;
+  break;
+
+ case R_Z_TEST_PROBE:            /* 22 0x16 test probe position */
+  zAxis.v.testProbe = val.t_int;
+  break;
+
+ case R_X_STEPS_INCH:            /* 23 0x17 steps per inch */
   xAxis.v.stepsInch = val.t_int;
   break;
 
- case R_X_SAVED_LOC:             /* 19 0x13 saved for que op */
+ case R_X_SAVED_LOC:             /* 24 0x18 saved for que op */
   xAxis.v.savedLoc = val.t_int;
   break;
 
- case R_X_HOME_OFFSET:           /* 20 0x14 home offset */
+ case R_X_HOME_OFFSET:           /* 25 0x19 home offset */
   xAxis.v.homeOffset = val.t_int;
   break;
 
- case R_X_LOC:                   /* 21 0x15 location */
+ case R_X_LOC:                   /* 26 0x1a location */
   xAxis.v.loc = val.t_int;
   break;
 
- case R_X_DRO:                   /* 22 0x16 dro */
+ case R_X_DRO:                   /* 27 0x1b dro */
   xAxis.v.dro = val.t_int;
   break;
 
- case R_X_JOG_INC:               /* 23 0x17 jog increment */
+ case R_X_JOG_INC:               /* 28 0x1c jog increment */
   xAxis.v.jogInc = val.t_int;
   break;
 
- case R_X_HOME_STATUS:           /* 24 0x18 home status */
+ case R_X_HOME_STATUS:           /* 29 0x1d home status */
   xAxis.v.homeStatus = val.t_int;
   break;
 
- case R_X_HOME_FIND_FWD:         /* 25 0x19 max homing distance */
+ case R_X_HOME_FIND_FWD:         /* 30 0x1e max homing distance */
   xAxis.v.homeFindFwd = val.t_int;
   break;
 
- case R_X_HOME_FIND_REV:         /* 26 0x1a max rev homing distance */
+ case R_X_HOME_FIND_REV:         /* 31 0x1f max rev homing distance */
   xAxis.v.homeFindRev = val.t_int;
   break;
 
- case R_X_HOME_BACKOFF:          /* 27 0x1b home backoff dist */
+ case R_X_HOME_BACKOFF:          /* 32 0x20 home backoff dist */
   xAxis.v.homeBackoff = val.t_int;
   break;
 
- case R_X_HOME_SLOW:             /* 28 0x1c home backoff dist */
+ case R_X_HOME_SLOW:             /* 33 0x21 home backoff dist */
   xAxis.v.homeSlow = val.t_int;
+  break;
+
+ case R_X_TEST_LIM_MIN:          /* 34 0x22 test minimum limit */
+  xAxis.v.testLimMin = val.t_int;
+  break;
+
+ case R_X_TEST_LIM_MAX:          /* 35 0x23 test maximum limit */
+  xAxis.v.testLimMax = val.t_int;
+  break;
+
+ case R_X_TEST_HOME_MIN:         /* 36 0x24 test home minimum */
+  xAxis.v.testHomeMin = val.t_int;
+  break;
+
+ case R_X_TEST_HOME_MAX:         /* 37 0x25 test home maximum */
+  xAxis.v.testHomeMax = val.t_int;
+  break;
+
+ case R_X_TEST_PROBE:            /* 38 0x26 test probe position */
+  xAxis.v.testProbe = val.t_int;
   break;
 
  }
@@ -255,48 +305,88 @@ void getRiscvVar(const int parm, const P_DATA_UNION val)
   val->t_int = zAxis.v.homeSlow;
   break;
 
- case R_X_STEPS_INCH:            /* 18 0x12 steps per inch */
+ case R_Z_TEST_LIM_MIN:          /* 18 0x12 test minimum limit */
+  val->t_int = zAxis.v.testLimMin;
+  break;
+
+ case R_Z_TEST_LIM_MAX:          /* 19 0x13 test maximum limit */
+  val->t_int = zAxis.v.testLimMax;
+  break;
+
+ case R_Z_TEST_HOME_MIN:         /* 20 0x14 test home minimum */
+  val->t_int = zAxis.v.testHomeMin;
+  break;
+
+ case R_Z_TEST_HOME_MAX:         /* 21 0x15 test home maximum */
+  val->t_int = zAxis.v.testHomeMax;
+  break;
+
+ case R_Z_TEST_PROBE:            /* 22 0x16 test probe position */
+  val->t_int = zAxis.v.testProbe;
+  break;
+
+ case R_X_STEPS_INCH:            /* 23 0x17 steps per inch */
   val->t_int = xAxis.v.stepsInch;
   break;
 
- case R_X_SAVED_LOC:             /* 19 0x13 saved for que op */
+ case R_X_SAVED_LOC:             /* 24 0x18 saved for que op */
   val->t_int = xAxis.v.savedLoc;
   break;
 
- case R_X_HOME_OFFSET:           /* 20 0x14 home offset */
+ case R_X_HOME_OFFSET:           /* 25 0x19 home offset */
   val->t_int = xAxis.v.homeOffset;
   break;
 
- case R_X_LOC:                   /* 21 0x15 location */
+ case R_X_LOC:                   /* 26 0x1a location */
   val->t_int = xAxis.v.loc;
   break;
 
- case R_X_DRO:                   /* 22 0x16 dro */
+ case R_X_DRO:                   /* 27 0x1b dro */
   val->t_int = xAxis.v.dro;
   break;
 
- case R_X_JOG_INC:               /* 23 0x17 jog increment */
+ case R_X_JOG_INC:               /* 28 0x1c jog increment */
   val->t_int = xAxis.v.jogInc;
   break;
 
- case R_X_HOME_STATUS:           /* 24 0x18 home status */
+ case R_X_HOME_STATUS:           /* 29 0x1d home status */
   val->t_int = xAxis.v.homeStatus;
   break;
 
- case R_X_HOME_FIND_FWD:         /* 25 0x19 max homing distance */
+ case R_X_HOME_FIND_FWD:         /* 30 0x1e max homing distance */
   val->t_int = xAxis.v.homeFindFwd;
   break;
 
- case R_X_HOME_FIND_REV:         /* 26 0x1a max rev homing distance */
+ case R_X_HOME_FIND_REV:         /* 31 0x1f max rev homing distance */
   val->t_int = xAxis.v.homeFindRev;
   break;
 
- case R_X_HOME_BACKOFF:          /* 27 0x1b home backoff dist */
+ case R_X_HOME_BACKOFF:          /* 32 0x20 home backoff dist */
   val->t_int = xAxis.v.homeBackoff;
   break;
 
- case R_X_HOME_SLOW:             /* 28 0x1c home backoff dist */
+ case R_X_HOME_SLOW:             /* 33 0x21 home backoff dist */
   val->t_int = xAxis.v.homeSlow;
+  break;
+
+ case R_X_TEST_LIM_MIN:          /* 34 0x22 test minimum limit */
+  val->t_int = xAxis.v.testLimMin;
+  break;
+
+ case R_X_TEST_LIM_MAX:          /* 35 0x23 test maximum limit */
+  val->t_int = xAxis.v.testLimMax;
+  break;
+
+ case R_X_TEST_HOME_MIN:         /* 36 0x24 test home minimum */
+  val->t_int = xAxis.v.testHomeMin;
+  break;
+
+ case R_X_TEST_HOME_MAX:         /* 37 0x25 test home maximum */
+  val->t_int = xAxis.v.testHomeMax;
+  break;
+
+ case R_X_TEST_PROBE:            /* 38 0x26 test probe position */
+  val->t_int = xAxis.v.testProbe;
   break;
 
  }

@@ -50,6 +50,11 @@ typedef struct
  int homeFindRev;
  int homeBackoff;
  int homeSlow;
+ int testLimMin;
+ int testLimMax;
+ int testHomeMin;
+ int testHomeMax;
+ int testProbe;
 }
 T_AXIS_VAR, *P_AXIS_VAR;
 

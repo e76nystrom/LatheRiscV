@@ -82,7 +82,8 @@ set(OBJECTS
         ../../lib/source/neorv32_xip.c
         ../../lib/source/neorv32_xirq.c
         ../../lib/source/syscalls.c
-        ../../common/crt0.S)
+        ../../common/crt0.S
+)
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT} ${OBJECTS})
 

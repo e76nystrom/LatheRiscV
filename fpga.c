@@ -13,13 +13,14 @@
 
 typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
 {
- uint32_t rsv;
- uint32_t ctl;
- uint32_t data;
- uint32_t op;
- uint32_t millis;
- uint32_t zMpg;
- uint32_t xMpg;
+ uint32_t rsv;			/* 0 */
+ uint32_t ctl;			/* 1 */
+ uint32_t data;			/* 2 */
+ uint32_t op;			/* 3 */
+ uint32_t millis;		/* 4 */
+ uint32_t zMpg;			/* 5 */
+ uint32_t xMpg;			/* 6 */
+ uint32_t inPin;		/* 7 */
 } T_CFS, *P_CFS;
 
 #define MPG_MASK  0x7f
@@ -65,7 +66,7 @@ void ld(const int op, const int val)
  dbgPutStr("ld ");
  dbgPutHexByte(op);
  dbgPutC(' ');
- const char *p = (char *) &fpgaOpStr[op];
+ const char *p = &fpgaOpStr[op].c0;
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p++);

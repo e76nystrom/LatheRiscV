@@ -1,5 +1,5 @@
-#if !defined(INC_RISCV_CMD_STR)
-#define INC_RISCV_CMD_STR
+#if !defined(RISCV_CMD_STR_INC)
+#define RISCV_CMD_STR_INC
 
 struct S_RISCV_CMD_STR
 {
@@ -29,8 +29,8 @@ struct S_RISCV_CMD_STR riscvCmdStr[] =
  {'G', 'D',},            /* 11 17  set data */
  {'J', 'Z',},            /* 12 18  jog move z */
  {'J', 'X',},            /* 13 19  jog move x */
- {'M', 'Z',},            /* 14 20  home z */
- {'M', 'X',},            /* 15 21  home x */
+ {'H', 'Z',},            /* 14 20  home z */
+ {'H', 'X',},            /* 15 21  home x */
  {'O', 'S',},            /* 16 22  start first queued command */
  {'O', 'D',},            /* 17 23  done */
  {'P', 'A',},            /* 18 24  pause */
@@ -41,9 +41,10 @@ struct S_RISCV_CMD_STR riscvCmdStr[] =
  {'S', 'D',},            /* 1d 29  set data */
  {'M', 'Z',},            /* 1e 30  move z */
  {'M', 'X',},            /* 1f 31  move x */
- {'H', 'Z',},            /* 20 32  move rel z */
- {'H', 'X',},            /* 21 33  move rel x */
- {'M', 'X',},            /* 22 34  maximum command */
+ {'R', 'Z',},            /* 20 32  move rel z */
+ {'R', 'X',},            /* 21 33  move rel x */
 };
 
-#endif  /* RISCV_CMD_STR */
+#define RISCV_CMD_STR_SIZE 34
+
+#endif  /* RISCV_CMD_STR_INC */

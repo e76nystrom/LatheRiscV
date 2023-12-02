@@ -52,6 +52,7 @@ typedef struct S_DEBUG_QUE
 
 EXT T_DEBUG_QUE dbgQue;
 
+void remCmdInit(void);
 void remCmd(void);
 
 void runInit(void);
