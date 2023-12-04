@@ -318,7 +318,7 @@ void remCmd(void)
    // dbgPutSpace();
    // dbgPutHexByte((remCtl.rx_emp - tmp1) & (REM_RX_SIZE-1));
    // dbgPutSpace();
-   
+
    if (cmdLen != 0)
    {
     dbgPutC('=');
@@ -326,7 +326,7 @@ void remCmd(void)
     dbgNewLine();
     cmdLen = 0;
    }
-   
+
    dbg += 1;
    dbgPutC('*');
    dbgPutHexByte(dbg);
@@ -366,7 +366,7 @@ void remCmd(void)
     dbgPutSpace();
     dbgPutHexByte(runQue.fil);
     dbgPutStr(" queued");
-   
+
     if (n >= 1)
     {
      data->val1 = val1;
@@ -387,14 +387,14 @@ void remCmd(void)
     runQue.count += 1;
    }
    dbgNewLine();
-  }   
+  }
   else
   {
    switch (parm)
    {
    case R_NONE:
     break;
-    
+
    case R_READ_DBG:
    {
     rspPutHexByte(parm);
@@ -450,11 +450,11 @@ void remCmd(void)
     axisStop(&zAxis);
     axisStop(&xAxis);
     break;
-   
+
    case R_STOP_Z:
     axisStop(&zAxis);
     break;
-   
+
    case R_STOP_X:
     axisStop(&xAxis);
     break;
@@ -505,15 +505,23 @@ void remCmd(void)
      dbgNewLine();
     }
     break;
-   
+
    case R_SET_LOC_X:
+#if defined(INPUT_TEST)
+    CFS->ctl = RISCV_IN_TEST | RISCV_DATA;	/* ***testing inputs*** */
+#else
     CFS->ctl = RISCV_DATA;
+#endif
     setLoc(&xAxis, val1);
     dbgMsg(D_XLOC, val1);
     break;
 
    case R_SET_LOC_Z:
+#if defined(INPUT_TEST)
+    CFS->ctl = RISCV_IN_TEST | RISCV_DATA;	/* ***testing inputs*** */
+#else
     CFS->ctl = RISCV_DATA;
+#endif
     ld(F_Ld_Cfg_Ctl, CFG_DRO_STEP | CFG_ZDRO_INV | CFG_XDRO_INV);
     setLoc(&zAxis, val1);
     dbgMsg(D_ZLOC, val1);
@@ -542,7 +550,7 @@ void remCmd(void)
     dbgPutSpace();
     dbgPutHex(val2, 4);
     dbgNewLine();
-   
+
     T_DATA_UNION val;
     val.t_int = val2;
     setRiscvVar(val1, val);
@@ -709,7 +717,7 @@ void runProcess(void)
    runQue.count -= 1;
 
    const int parm = data->parm;
-    
+
    dbgPutStr("q ");
    dbgPutHexByte(parm);
    dbgPutSpace();
@@ -734,12 +742,12 @@ void runProcess(void)
    {
    case R_OP_START:
     dbgMsg(D_DONE, PARM_START);
-    
+
     rVar.rMvStatus &= ~MV_DONE;
     rVar.rMvStatus |= MV_ACTIVE;
-    
+
     rVar.rJogPause = DISABLE_JOG;
-    
+
     zAxis.mpgState = MPG_DISABLED;
     xAxis.mpgState = MPG_DISABLED;
     break;
@@ -789,7 +797,7 @@ void runProcess(void)
    case R_SET_ACCEL_Q:
     saveAccel(data->val1, data->val2);
     break;
-   
+
    case R_SET_DATA_Q:
    {
     dbgPutStr("setDataQ ");
@@ -797,13 +805,13 @@ void runProcess(void)
     dbgPutSpace();
     dbgPutHex(data->val2, 4);
     dbgNewLine();
-   
+
     T_DATA_UNION val;
     val.t_int = data->val2;
     setRiscvVar(data->val1, val);
    }
    break;
-     
+
    case R_MOVE_Z:
     move(&zAxis, data->val1, data->val2);
     break;

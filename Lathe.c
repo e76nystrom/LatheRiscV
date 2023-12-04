@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <neorv32.h>
-// #include "fpgaLatheReg.h"
+#include "fpgaLatheReg.h"
 // #include "fpgaLatheBits.h"
 // ReSharper disable once CppUnusedIncludeDirective
 #include "ctlstates.h"
@@ -26,6 +26,8 @@
 #define REM_BAUD_RATE 19200
 
 #endif
+
+//#define INPUT_DIAG
 
 int spiEna = 0;
 
@@ -63,9 +65,11 @@ int main(void)
  neorv32_uart1_puts("\nrem starting\n");
 
 #if defined(INPUT_TEST)
- CFS->ctl = RISCV_IN_TEST;	/* ***testing inputs*** */
+ CFS->ctl = RISCV_IN_TEST | RISCV_DATA;	/* ***testing inputs*** */
  dbgPutStr("\n***testing inputs***\n");
 #endif
+
+ ld(F_Ld_Dsp_Reg, 0xabcd);
 
  neorv32_gpio_port_set(1);
 
@@ -91,10 +95,19 @@ int main(void)
   neorv32_spi_setup(prsc, cDiv, clkPhase, clkPolarity, irqMask);
  }
 
- #include "fpgaLatheReg.h"
+#if defined(INPUT_DIAG)
+
+#include "fpgaLatheReg.h"
  
+#if 1
  ld(F_Ld_Cfg_Ctl, CFG_ZHOME_INV | CFG_ZMINUS_INV |
-    CFG_ZPLUS_INV | CFG_PROBE_INV);
+   CFG_ZPLUS_INV | CFG_PROBE_INV);
+#endif
+
+#if 1
+ ld(F_Ld_Cfg_Ctl, CFG_XHOME_INV | CFG_XMINUS_INV |
+   CFG_XPLUS_INV | CFG_PROBE_INV);
+#endif
 
  int mask = 1;
  for (int i = 0; i < INPUTS_SIZE; i++)
@@ -113,6 +126,8 @@ int main(void)
   dbgAxisStatus(&xAxis);
   mask <<= 1;
  }
+
+#endif
 
 #if 0
  char buf[16];
