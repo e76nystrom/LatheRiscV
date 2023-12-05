@@ -21,8 +21,8 @@ int riscvCmdSize[] =
  2,     /*  R_SET_ACCEL      0x0f 15 'SA' set accel parm */
  2,     /*  R_SET_DATA       0x10 16 'SD' set data */
  1,     /*  R_GET_DATA       0x11 17 'GD' set data */
- 0,     /*  R_JOG_Z          0x12 18 'JZ' jog move z */
- 0,     /*  R_JOG_X          0x13 19 'JX' jog move x */
+ 1,     /*  R_JOG_Z          0x12 18 'JZ' jog move z */
+ 1,     /*  R_JOG_X          0x13 19 'JX' jog move x */
  1,     /*  R_HOME_Z         0x14 20 'HZ' home z */
  1,     /*  R_HOME_X         0x15 21 'HX' home x */
  0,     /*  R_OP_START       0x16 22 'OS' start first queued command */
