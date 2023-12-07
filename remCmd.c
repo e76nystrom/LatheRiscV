@@ -7,7 +7,7 @@
 #include "ctlbits.h"
 #include "riscvCmdList.h"
 #define EXT extern
-#include "lathe.h"
+#include "Lathe.h"
 #include "remCmd.h"
 #include "axisCtl.h"
 #include "dbgSerial.h"
