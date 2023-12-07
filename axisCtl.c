@@ -19,7 +19,7 @@
 #if defined(AXIS_CTL_INCLUDE)	// <-
 //#include <stdbool.h>
 #include <riscvStruct.h>
-#include <ctlStates.h>
+#include <ctlstates.h>
 
 #define INPUT_TEST
 
