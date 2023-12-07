@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include <neorv32.h>
-#include "ctlStates.h"
+#include "ctlstates.h"
 #include "ctlbits.h"
 #include "fpgaLatheReg.h"
 #include "fpgaLatheBits.h"
@@ -740,7 +740,11 @@ void jogMove(const P_AXIS_CTL axis, const int dist)
  dbgPutC(axis->c.name);
  dbgPutStr(" jog move\n");
  if (axis->state == RS_IDLE)
+ {
+  rVar.rJogPause = DISABLE_JOG;
+  axis->mpgState = MPG_DISABLED;
   moveRel(axis, dist, DIST_MODE | CMD_JOG);
+ }
  else
   ld(axis->c.base + F_Sync_Base + F_Ld_Dist, dist);
 }
@@ -1000,6 +1004,7 @@ void axisStop(const P_AXIS_CTL axis)
  dbgPutC(axis->c.name);
  dbgPutStr(" axisStop\n");
 
+ rVar.rJogPause = 0;
  ld(axis->c.base + F_Ld_Axis_Ctl, 0);
  clockLoad(axis, CLK_NONE);
  axis->state = RS_IDLE;
