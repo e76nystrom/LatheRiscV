@@ -9,7 +9,7 @@
 #include "fpgaLatheBits.h"
 
 #define EXT extern
-#include "lathe.h"
+#include "Lathe.h"
 #include "axisCtl.h"
 #include "remCmd.h"
 #include "fpga.h"
