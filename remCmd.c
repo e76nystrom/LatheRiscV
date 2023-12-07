@@ -3,7 +3,7 @@
 #include <neorv32.h>
 #include <string.h>
 #include <stdbool.h>
-#include "ctlStates.h"
+#include "ctlstates.h"
 #include "ctlbits.h"
 #include "riscvCmdList.h"
 #define EXT extern

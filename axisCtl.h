@@ -1,8 +1,8 @@
 #if !defined(AXIS_CTL_INC)	// <-
 #define AXIS_CTL_INC
-// #include <stdbool.h>
+//#include <stdbool.h>
 #include <riscvStruct.h>
-#include <ctlStates.h>
+#include <ctlstates.h>
 
 #define INPUT_TEST
 
