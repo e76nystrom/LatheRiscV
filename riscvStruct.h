@@ -34,7 +34,15 @@ typedef struct sRiscvVar
  int rCfgVal;           /* 0x03 R_CFG_VAL        fpga configuration value */
  int rPRpm;             /* 0x04 R_P_RPM          spindle rpm */
  int rPwmDiv;           /* 0x05 R_PWM_DIV        pwm divider */
- int rPwmCtr;           /* 0x06 R_PWM_CTR        pwm counter maxy */
+ int rPwmCtr;           /* 0x06 R_PWM_CTR        pwm counter max */
+ int rSynEncPreScaler;  /* 0x07 R_SYN_ENC_PRE_SCALER encoder prescaler */
+ int rSynEncCycle;      /* 0x08 R_SYN_ENC_CYCLE  encoder cycle len */
+ int rSynOutCycle;      /* 0x09 R_SYN_OUT_CYCLE  output cycle len */
+ int rTurnSync;         /* 0x0a R_TURN_SYNC      turn sync */
+ int rThreadSync;       /* 0x0b R_THREAD_SYNC    thread sync */
+ int rRunoutSync;       /* 0x0c R_RUNOUT_SYNC    runout sync */
+ int rThreadFlags;      /* 0x0d R_THREAD_FLAGS   threading flags */
+ int rRunoutLimit;      /* 0x0e R_RUNOUT_LIMIT   runout limit */
 } T_RISCV_VAR, *P_RISCV_VAR;
 
 typedef struct

@@ -28,15 +28,16 @@ int riscvCmdSize[] =
  0,     /*  R_OP_START       0x16 22 'OS' start first queued command */
  0,     /*  R_OP_DONE        0x17 23 'OD' done */
  0,     /*  R_PAUSE          0x18 24 'PA' pause */
- 0,     /*  R_STR_SPIN_Q     0x19 25 'Q+' start spindle */
- 0,     /*  R_STP_SPIN_Q     0x1a 26 'Q-' stop spindle */
- 1,     /*  R_PASS           0x1b 27 'PS' pass */
- 2,     /*  R_SET_ACCEL_Q    0x1c 28 'SQ' set accel parm queued */
- 2,     /*  R_SET_DATA_Q     0x1d 29 'SD' set data */
- 2,     /*  R_MOVE_Z         0x1e 30 'MZ' move z */
- 2,     /*  R_MOVE_X         0x1f 31 'MX' move x */
- 2,     /*  R_MOVE_REL_Z     0x20 32 'RZ' move rel z */
- 2,     /*  R_MOVE_REL_X     0x21 33 'RX' move rel x */
+ 0,     /*  R_ENC_SCL_STR    0x19 25 'ES' encoder scale start */
+ 0,     /*  R_STR_SPIN_Q     0x1a 26 'Q+' start spindle */
+ 0,     /*  R_STP_SPIN_Q     0x1b 27 'Q-' stop spindle */
+ 1,     /*  R_PASS           0x1c 28 'PS' pass */
+ 2,     /*  R_SET_ACCEL_Q    0x1d 29 'SQ' set accel parm queued */
+ 2,     /*  R_SET_DATA_Q     0x1e 30 'SD' set data */
+ 2,     /*  R_MOVE_Z         0x1f 31 'MZ' move z */
+ 2,     /*  R_MOVE_X         0x20 32 'MX' move x */
+ 2,     /*  R_MOVE_REL_Z     0x21 33 'RZ' move rel z */
+ 2,     /*  R_MOVE_REL_X     0x22 34 'RX' move rel x */
 };
 
 #endif  /* RISCV_CMD_SIZE */

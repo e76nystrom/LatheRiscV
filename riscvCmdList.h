@@ -30,15 +30,16 @@ enum RISCV_CMD
  R_OP_START,                    /* 0x16 'OS' start first queued command */
  R_OP_DONE,                     /* 0x17 'OD' done */
  R_PAUSE,                       /* 0x18 'PA' pause */
- R_STR_SPIN_Q,                  /* 0x19 'Q+' start spindle */
- R_STP_SPIN_Q,                  /* 0x1a 'Q-' stop spindle */
- R_PASS,                        /* 0x1b 'PS' pass */
- R_SET_ACCEL_Q,                 /* 0x1c 'SQ' set accel parm queued */
- R_SET_DATA_Q,                  /* 0x1d 'SD' set data */
- R_MOVE_Z,                      /* 0x1e 'MZ' move z */
- R_MOVE_X,                      /* 0x1f 'MX' move x */
- R_MOVE_REL_Z,                  /* 0x20 'RZ' move rel z */
- R_MOVE_REL_X,                  /* 0x21 'RX' move rel x */
+ R_ENC_SCL_STR,                 /* 0x19 'ES' encoder scale start */
+ R_STR_SPIN_Q,                  /* 0x1a 'Q+' start spindle */
+ R_STP_SPIN_Q,                  /* 0x1b 'Q-' stop spindle */
+ R_PASS,                        /* 0x1c 'PS' pass */
+ R_SET_ACCEL_Q,                 /* 0x1d 'SQ' set accel parm queued */
+ R_SET_DATA_Q,                  /* 0x1e 'SD' set data */
+ R_MOVE_Z,                      /* 0x1f 'MZ' move z */
+ R_MOVE_X,                      /* 0x20 'MX' move x */
+ R_MOVE_REL_Z,                  /* 0x21 'RZ' move rel z */
+ R_MOVE_REL_X,                  /* 0x22 'RX' move rel x */
 };
 
 #endif  /* RISCV_CMD_LIST */

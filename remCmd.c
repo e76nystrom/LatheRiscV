@@ -754,6 +754,8 @@ void runProcess(void)
 
    case R_OP_DONE:
     dbgMsg(D_DONE, PARM_DONE);
+
+    rVar.rThreadFlags = 0;
     rVar.rMvStatus &= ~MV_ACTIVE;
 
     if (rVar.rCurPass == 0)
@@ -775,6 +777,9 @@ void runProcess(void)
 
     runCtl.wait = RW_PAUSE;
     rVar.rMvStatus |= MV_PAUSE;
+    break;
+
+   case R_ENC_SCL_STR:
     break;
 
    case R_STR_SPIN_Q:

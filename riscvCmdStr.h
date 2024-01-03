@@ -34,17 +34,18 @@ struct S_RISCV_CMD_STR riscvCmdStr[] =
  {'O', 'S',},            /* 16 22  start first queued command */
  {'O', 'D',},            /* 17 23  done */
  {'P', 'A',},            /* 18 24  pause */
- {'Q', '+',},            /* 19 25  start spindle */
- {'Q', '-',},            /* 1a 26  stop spindle */
- {'P', 'S',},            /* 1b 27  pass */
- {'S', 'Q',},            /* 1c 28  set accel parm queued */
- {'S', 'D',},            /* 1d 29  set data */
- {'M', 'Z',},            /* 1e 30  move z */
- {'M', 'X',},            /* 1f 31  move x */
- {'R', 'Z',},            /* 20 32  move rel z */
- {'R', 'X',},            /* 21 33  move rel x */
+ {'E', 'S',},            /* 19 25  encoder scale start */
+ {'Q', '+',},            /* 1a 26  start spindle */
+ {'Q', '-',},            /* 1b 27  stop spindle */
+ {'P', 'S',},            /* 1c 28  pass */
+ {'S', 'Q',},            /* 1d 29  set accel parm queued */
+ {'S', 'D',},            /* 1e 30  set data */
+ {'M', 'Z',},            /* 1f 31  move z */
+ {'M', 'X',},            /* 20 32  move x */
+ {'R', 'Z',},            /* 21 33  move rel z */
+ {'R', 'X',},            /* 22 34  move rel x */
 };
 
-#define RISCV_CMD_STR_SIZE 34
+#define RISCV_CMD_STR_SIZE 35
 
 #endif  /* RISCV_CMD_STR_INC */
