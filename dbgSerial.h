@@ -10,5 +10,6 @@ void dbgPutHexByte(char ch);
 void dbgPutHex(unsigned int val, int size);
 
 char* dbgFmtNum(char *buf, int val);
+void dbgPutInt(int val);
 
 #endif  /* DBG_SERIAL_INC */	// ->

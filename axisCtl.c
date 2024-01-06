@@ -89,8 +89,8 @@ typedef struct S_AXIS_CONSTANT
 
 typedef struct S_AXIS_CTL
 {
- enum RISCV_AXIS_STATE_TYPE state; /* current wait state */
- enum RISCV_AXIS_STATE_TYPE lastState; /* last state */
+ enum RISCV_AXIS_STATE state;	/* current wait state */
+ enum RISCV_AXIS_STATE lastState; /* last state */
  enum MPG_STATE mpgState;	/* mpg state */
  enum MPG_STATE lastMpgState;	/* last mpg state */
  enum H_STATES homeState;
@@ -140,16 +140,20 @@ EXT int clockSelVal;
 
 char *fmtLoc(char *buf, P_AXIS_CTL axis, int loc);
 char *fmtDist(char *buf, P_AXIS_CTL axis, int dist);
+void dbgPrtLoc(const char *str, const P_AXIS_CTL axis, int loc);
+void dbgPrtDist(const char *str, const P_AXIS_CTL axis, int dist);
 
 void initAccelTable(void);
+
+void dbgAxisInit(P_AXIS_CTL axis);
 void initAxisCtl(void);
 
 void dbgStatus(int status);
 void dbgAxisCtl(char name, int val);
 void dbgMvStatus(int val);
 void dbgJogPause(int val);
-void dbgAxisStatus(const P_AXIS_CTL axis);
-void dbgInPin(const int val);
+void dbgAxisStatus(const char *str, const P_AXIS_CTL axis);
+void dbgInPin(const char *str, const int val);
 
 void axisCtl(void);
 void axisStateCheck(P_AXIS_CTL axis);
@@ -170,10 +174,6 @@ void axisLoad(P_AXIS_CTL axis, int index);
 #endif	/* AXIS_CTL_INCLUDE */ // ->
 #if defined(LATHECPP_AXIS_CTL)
 
-uint32_t delta;
-uint32_t lastMvStatus;
-uint32_t lastStatus;
-
 char *fmtLoc(char *buf, const P_AXIS_CTL axis, int loc)
 {
  loc -= axis->v.homeOffset;
@@ -188,6 +188,26 @@ char *fmtDist(char *buf, const P_AXIS_CTL axis, int dist)
  dist /= axis->v.stepsInch;
  return dbgFmtNum(buf, dist);
 }
+
+void dbgPrtLoc(const char *str, const P_AXIS_CTL axis, int loc)
+{
+ dbgPutStr(str);
+ dbgPutInt(loc);
+ char buf[16];
+ dbgPutStr(fmtLoc(buf, axis, loc));
+}
+
+void dbgPrtDist(const char *str, const P_AXIS_CTL axis, int dist)
+{
+ dbgPutStr(str);
+ dbgPutInt(dist);
+ char buf[16];
+ dbgPutStr(fmtDist(buf, axis, dist));
+}
+
+uint32_t delta;
+uint32_t lastMvStatus;
+uint32_t lastStatus;
 
 void initAccelTable(void)
 {
@@ -255,17 +275,26 @@ T_AXIS_CONSTANT xInitData =
 #endif
 };
 
+void dbgAxisInit(P_AXIS_CTL axis)
+{
+ dbgPutC(axis->c.name);
+ dbgPutHexByte(axis->c.axisID);
+ dbgPutHexByte(axis->c.clkShift);
+ dbgPutHexByte(axis->c.dbgBase);
+ dbgNewLine();
+}
+
 void initAxisCtl(void)
 {
- printf("InitAxisCtl\n");
+ dbgPutStr("initAxisCtl\n");
  memset(&zAxis, 0, sizeof(zAxis));
  memset(&xAxis, 0, sizeof(xAxis));
 
  memcpy(&zAxis.c, &zInitData, sizeof(T_AXIS_CONSTANT));
- printf("z %d %d %d\n", zAxis.c.axisID, zAxis.c.clkShift, zAxis.c.dbgBase);
+ dbgAxisInit(&zAxis);
 
  memcpy(&xAxis.c, &xInitData, sizeof(T_AXIS_CONSTANT));
- printf("x %d %d %d\n", xAxis.c.axisID, xAxis.c.clkShift, xAxis.c.dbgBase);
+ dbgAxisInit(&xAxis);
 
  ld(F_ZAxis_Base + F_Ld_Axis_Ctl, CTL_INIT);
  ld(F_ZAxis_Base + F_Ld_Axis_Ctl, 0);
@@ -274,18 +303,22 @@ void initAxisCtl(void)
  ld(F_XAxis_Base + F_Ld_Axis_Ctl, CTL_INIT);
  ld(F_XAxis_Base + F_Ld_Axis_Ctl, 0);
  const uint32_t xCtl = rd(F_XAxis_Base + F_Rd_Axis_Ctl);
- printf("zCtl %x xCtl %x\n", zCtl, xCtl);
 
- const uint32_t zStat = rd(F_ZAxis_Base + F_Rd_Axis_Status);
- const uint32_t xStat = rd(F_XAxis_Base + F_Rd_Axis_Status);
- printf("zStat %x xStat %x\n", zStat, xStat);
+ dbgPutStr("zCtl");
+ dbgPutHex(zCtl, 2);
+ dbgPutStr(" xCtl");
+ dbgPutHex(xCtl, 2);
+ dbgNewLine(); 
+
+ dbgAxisStatus("init", &zAxis);
+ dbgAxisStatus("init", &xAxis);
 }
 
 #include "statusRegStr.h"
 
 void dbgStatus(const int status)
 {
- dbgPutStr("status ");
+ dbgPutStr("status");
  dbgPutHex(status, 2);
  // ReSharper disable once CppRedundantParentheses
  int mask = 1 << (STATUS_SIZE-1);
@@ -308,7 +341,7 @@ void dbgStatus(const int status)
 void dbgAxisCtl(const char name, const int val)
 {
  dbgPutC(name);
- dbgPutStr(" axis ctl reg ");
+ dbgPutStr(" axis ctl reg");
  dbgPutHex(val, 2);
  int mask = 1 << (AXIS_CTL_REG_SIZE-1);
  for (int i = AXIS_CTL_REG_SIZE-1; i > 0; i--)
@@ -329,7 +362,7 @@ void dbgAxisCtl(const char name, const int val)
 
 void dbgMvStatus(const int val)
 {
- dbgPutStr("mvStatus ");
+ dbgPutStr("mvStatus");
  dbgPutHex(rVar.rMvStatus, 2);
  int mask = 1;
  for (int i = 0; i < R_MV_MAX; i++)
@@ -350,7 +383,7 @@ void dbgMvStatus(const int val)
 
 void dbgJogPause(const int val)
 {
- dbgPutStr("jogPause ");
+ dbgPutStr("jogPause");
  dbgPutHexByte(rVar.rJogPause);
  int mask = 1;
  for (int i = 0; i < R_PAUSE_MAX; i++)
@@ -369,8 +402,11 @@ void dbgJogPause(const int val)
 
 #include "axisStatusRegStr.h"
 
-void dbgAxisStatus(const P_AXIS_CTL axis)
+void dbgAxisStatus(const char *str, const P_AXIS_CTL axis)
 {
+ dbgPutC(axis->c.name);
+ dbgPutSpace();
+ dbgPutStr(str);
  const int axisStatus = rd(axis->c.base + F_Rd_Axis_Status);
  dbgPutHexByte(axisStatus);
  int mask = 1;
@@ -390,13 +426,12 @@ void dbgAxisStatus(const P_AXIS_CTL axis)
 
 #include "inputsRegStr.h"
 
-void dbgInPin(const int val)
+void dbgInPin(const char *str, const int val)
 {
- dbgPutStr("input pins ");
+ dbgPutStr(str);
+ dbgPutStr(" input pins");
  dbgPutHex(CFS->inPin, 2);
- dbgPutSpace();
  dbgPutHex(val, 2);
- dbgPutSpace();
  int mask = 1;
  for (int i = 0; i < INPUTS_REG_SIZE; i++)
  {
@@ -410,6 +445,47 @@ void dbgInPin(const int val)
   mask <<= 1;
  }
  dbgNewLine();
+}
+
+#include "riscvAxisStateStr.h"
+
+void dbgAxisState(const P_AXIS_CTL axis)
+{
+ dbgPutC(axis->c.name);
+ dbgPutStr(" axis state");
+ const int state = axis->state;
+ dbgPutHexByte(state);
+ dbgPutSpace();
+ const char *p = &riscvAxisStateStr[state].c0;
+ dbgPutC(*p++);
+ dbgPutC(*p);
+ dbgNewLine(); 
+}
+
+#include "moveCmdStr.h"
+#include "moveBitStr.h"
+
+void dbgMoveCmd(const int cmd)
+{
+ dbgPutHex(cmd, 2);
+
+ const char *p = &moveCmdStr[cmd & CMD_MSK].c0;
+ dbgPutStr(" ");
+ dbgPutC(*p++);
+ dbgPutC(*p);   
+
+ int mask = 1 << (M_BIT_MAX-1);
+ for (int i = M_BIT_MAX-1; i > M_RSV_2; i--)
+ {
+  if (mask & cmd)
+  {
+   p = (char *) &moveBitStr[i].c0;
+   dbgPutSpace();
+   dbgPutC(*p++);
+   dbgPutC(*p);   
+  }
+  mask >>= 1;
+ }
 }
 
 void axisCtl(void)
@@ -460,11 +536,15 @@ void axisStateCheck(const P_AXIS_CTL axis)
  if (axis->state != axis->lastState)
  {
   axis->lastState = axis->state;
-  dbgMsg(axis->c.dbgBase + D_ST, axis->state);
+  dbgAxisState(axis);
  }
 }
 
 int inPin;
+
+#define WAIT_TAPER_RUNOUT ((1 << RS_WAIT_TAPER) | (1 << RS_WAIT_RUNOUT))
+#define WAIT_MASK ((1 << RS_WAIT) | (1 << RS_WAIT_TAPER) | \
+		   (1 << RS_WAIT_RUNOUT))
 
 void axisCheck(const P_AXIS_CTL axis, const int status)
 {
@@ -496,16 +576,12 @@ void axisCheck(const P_AXIS_CTL axis, const int status)
  {
   inPin = inPinTmp;
   CFS->inPin = inPinTmp;
-  char locBuf[16];
 
-  dbgPutStr("inPin ");
   dbgPutC(axis->c.name);
-  dbgPutSpace();
-  fmtLoc(locBuf, axis, cur);
-  dbgPutStr(locBuf);
-  dbgPutSpace();
-  dbgInPin(inPin);
-  dbgInPin(rd(F_Rd_Inputs));
+  dbgPrtLoc(" loc", axis, cur);
+  dbgNewLine();
+  dbgInPin("set", inPin);
+  dbgInPin("rd ", rd(F_Rd_Inputs));
  }
  
 #endif
@@ -513,77 +589,89 @@ void axisCheck(const P_AXIS_CTL axis, const int status)
  if (axis->state != RS_IDLE)
  {
   // int value = (int) rd(base + F_Rd_Axis_Ctl);
-  const int doneStat = axis->state == RS_WAIT_TAPER ?
-                        axis->c.other->c.statDone : axis->c.statDone;
+  const int state = axis->state;
+  const int stateMask = (1 << state);
+  const int doneStat = (((stateMask & WAIT_TAPER_RUNOUT) != 0) ? \
+			axis->c.other->c.statDone : axis->c.statDone);
 
   if (status & doneStat)
   {
-   dbgPutC(axis->c.name);
-   dbgPutStr(" axis done ");
-   dbgAxisStatus(axis);
+   dbgAxisStatus("axis done", axis);
 
-   if (axis->state == RS_WAIT_BACKLASH)
+   if (state == RS_WAIT_BACKLASH)
    {
     axis->ctlFlag &= ~CTL_BACKLASH;
     axisMove(axis);
     axis->state = RS_WAIT;
+    axisStateCheck(axis);
    }
-   else if (axis->state == RS_WAIT ||
-	    axis->state == RS_WAIT_TAPER)
+   else if ((stateMask & WAIT_MASK) != 0)
    {
-    axis->endDist = (int) rd(base + F_Sync_Base + F_Rd_Dist);
+    ld(F_RunOut_Base + F_Ld_RunOut_Ctl, 0);
+    
+    // axis->endDist = (int) rd(base + F_Sync_Base + F_Rd_Dist);
     axis->endLoc =  (int) rd(base + F_Sync_Base + F_Rd_Loc);
     axis->endDro =  (int) rd(base + F_Sync_Base + F_Rd_Dro);
     
+    clockLoad(axis, CLK_NONE);
+    ld(base + F_Ld_Axis_Ctl, 0);
+   
     dbgMsg(axis->c.dbgBase + D_EXP, axis->expLoc);
     dbgMsg(axis->c.dbgBase + D_LOC, axis->endLoc);
     dbgMsg(axis->c.dbgBase + D_DRO, axis->endDro);
 
-    char locBuf[16];
-    char droBuf[16];
-    fmtLoc(locBuf, axis, axis->endLoc);
-    fmtLoc(droBuf, axis, axis->endDro);
-    printf("dist %d loc %s dro %s\n", axis->endDist, locBuf, droBuf);
-    printf("delta %d\n", axis->endLoc - axis->expLoc);
+    dbgPrtDist("dist", axis, axis->dist);
+    dbgPrtLoc(" loc", axis, axis->endLoc);
+    dbgPrtLoc(" dro", axis, axis->endDro);
+    dbgPrtLoc(" exp", axis, axis->expLoc);
+    dbgNewLine();
 
-    const int xPos = rd(base + F_Sync_Base + F_Rd_XPos);
-    dbgMsg(axis->c.dbgBase + D_X, xPos);
-    const int yPos = rd(base + F_Sync_Base + F_Rd_YPos);
-    dbgMsg(axis->c.dbgBase + D_Y, yPos);
-    printf("xPos %d yPos %d\n", xPos, yPos);
+    const int deltaLoc = axis->endLoc - axis->expLoc;
+    if (deltaLoc != 0)
+    {
+     dbgPrtDist("delta", axis, deltaLoc);
+     dbgNewLine();
+    }
     
-    dbgPutHex(status, 2);
-    dbgPutSpace();
-    dbgPutC(axis->c.name);
-    dbgPutStr(" axis idle\n\n");
-
-    clockLoad(axis, CLK_NONE);
-    ld(base + F_Ld_Axis_Ctl, 0);
-   
+    const int xPos = rd(base + F_Sync_Base + F_Rd_XPos);
+    if (xPos != 0)
+    {
+     dbgMsg(axis->c.dbgBase + D_X, xPos);
+     const int yPos = rd(base + F_Sync_Base + F_Rd_YPos);
+     dbgMsg(axis->c.dbgBase + D_Y, yPos);
+     dbgPutStr("xPos");
+     dbgPutInt(xPos);
+     dbgPutStr(" yPos");
+     dbgPutInt(yPos);
+     dbgNewLine();
+    }
+    
     axis->ctlFlag = 0;
     axis->state = RS_IDLE;
     if (runCtl.wait == axis->c.waitState)
      runCtl.wait = RW_NONE;
+
+    axisStateCheck(axis);
+    dbgAxisStatus("axis idle", axis);
+    dbgNewLine();
    }
   }
  }
-#if 1
  else
  {
   jogMpg(axis);
   homeCtl(axis);
  }
-#endif
  
- axisStateCheck(axis);
-
  if (axis->state != RS_IDLE &&
      (status & axis->c.statEna) == 0)
  {
-  if (axis->ignore == 0)
+  if ((axis->ignore == 0) &&
+      ((axis->cmd & (SYN_START | ENA_RUNOUT)) == 0))
   {
    axis->ignore = 1;
-   printf("waiting no enable\n");
+   dbgPutC(axis->c.name);
+   dbgPutStr(" waiting no enable\n");
   }
  }
  else
@@ -602,22 +690,20 @@ void homeCtl(const P_AXIS_CTL axis)
   dbgMsg(D_HST, axis->homeState);
 
   dbgPutC(axis->c.name);
-  dbgPutStr(" axis home state ");
+  dbgPutStr(" axis home state");
   dbgPutHexByte(axis->homeState);
-  dbgPutSpace();
 
   const char *p = &hStatesStr[axis->homeState].c0;
   dbgPutSpace();
   dbgPutC(*p++);
   dbgPutC(*p);
 
-  dbgPutStr(" status ");
+  dbgPutStr(" status");
   dbgPutHexByte(axis->v.homeStatus);
 
-  dbgPutStr(" inputs ");
+  dbgPutStr(" inputs");
   const int tmp = axis->inputStatus;
   dbgPutHex(tmp, 2);
-  dbgPutSpace();
   int mask = 1;
   for (int i = 0; i < INPUTS_REG_SIZE; i++)
   {
@@ -715,21 +801,20 @@ void homeCtl(const P_AXIS_CTL axis)
 
 void move(const P_AXIS_CTL axis, const int cmd, const int loc)
 {
- dbgMsg(axis->c.dbgBase + D_MOV, loc);
-
- char buf[16];
  axis->expLoc = loc;
  const int pos = rd(axis->c.base + F_Sync_Base + F_Rd_Loc);
- dbgMsg(axis->c.dbgBase + D_CUR, pos);
 
- dbgPutC(axis->c.name);
- dbgPutStr(" move ");
- dbgPutHex(cmd, 2);
- dbgPutStr(" pos ");
- dbgPutStr(fmtLoc(buf, axis, pos));
- dbgPutStr(" loc ");
- dbgPutStr(fmtLoc(buf, axis, loc));
  dbgNewLine();
+ dbgPutC(axis->c.name);
+ dbgPutStr(" move");
+ dbgMoveCmd(cmd);
+ dbgPrtLoc(" pos", axis, pos);
+ dbgPrtLoc(" loc", axis, loc);
+ dbgNewLine();
+
+ dbgMsg(axis->c.dbgBase + D_MOV, loc);
+
+ dbgMsg(axis->c.dbgBase + D_CUR, pos);
 
  const int dist = loc - pos;
  moveRel(axis, dist, cmd);
@@ -739,6 +824,7 @@ void jogMove(const P_AXIS_CTL axis, const int dist)
 {
  dbgPutC(axis->c.name);
  dbgPutStr(" jog move\n");
+ 
  if (axis->state == RS_IDLE)
  {
   rVar.rJogPause = DISABLE_JOG;
@@ -889,7 +975,7 @@ void jogMpg(const P_AXIS_CTL axis)
  {
   axis->lastMpgState = axis->mpgState;
   dbgPutC(axis->c.name);
-  dbgPutStr(" mpgState ");
+  dbgPutStr(" mpgState");
   dbgPutHexByte(axis->mpgState);
   dbgPutSpace();
   const char *p = (char *) &mpgStateStr[axis->mpgState];
@@ -899,46 +985,19 @@ void jogMpg(const P_AXIS_CTL axis)
  }
 }
 
-#include "moveCmdStr.h"
-#include "moveBitStr.h"
-
 void moveRel(const P_AXIS_CTL axis, const int dist, const int cmd)
 {
+ dbgNewLine();
+ dbgPutC(axis->c.name);
+ dbgPutStr(" moveRel");
+ dbgMoveCmd(cmd);
+ dbgPrtDist(" dist", axis, dist);
+ dbgPrtLoc(" exp", axis, axis->expLoc);
+ dbgNewLine();
+  
  dbgMsg(axis->c.dbgBase + D_MVCM, cmd);
  dbgMsg(axis->c.dbgBase + D_DST, dist);
 
- char buf[16];
- dbgPutC(axis->c.name);
- dbgPutStr(" moveRel ");
- dbgPutHex(cmd, 2);
- dbgPutStr(" ");
-
- const char *p = &moveCmdStr[cmd & CMD_MSK].c0;
- dbgPutC(*p++);
- dbgPutC(*p);   
- dbgPutStr(" -");
-
- int mask = 1 << (M_BIT_MAX-1);
- for (int i = M_BIT_MAX-1; i > M_RSV_2; i--)
- {
-  if (mask & cmd)
-  {
-   p = (char *) &moveBitStr[i].c0;
-   dbgPutSpace();
-   dbgPutC(*p++);
-   dbgPutC(*p);   
-  }
-  mask >>= 1;
- }
-
- dbgPutStr(" exp ");
- dbgPutStr(fmtLoc(buf, axis, axis->expLoc));
- dbgPutStr(" dist ");
- dbgPutHex(dist, 4);
- dbgPutSpace();
- dbgPutStr(fmtDist(buf, axis, dist));
- dbgNewLine();
-  
  if (axis->state == RS_IDLE)
  {
   axis->ctlFlag = 0;			/* clear control flag */
@@ -971,13 +1030,21 @@ void moveRel(const P_AXIS_CTL axis, const int dist, const int cmd)
     axisMove(axis);
     axis->state = RS_WAIT;		/* set to start move */
     runCtl.wait = axis->c.waitState;
-    dbgPutC(axis->c.name);
-    dbgPutStr(" axis wait\n");
    }
   }
+  else				/* distance zero */
+  {
+   dbgPutC(axis->c.name);
+   dbgPutStr(" axis distance zero\n\n");
+  }
  }
- else
-  dbgPutStr("***axis not idle\n");
+ else				/* axis not idle */
+ {
+  dbgAxisState(axis);
+  dbgPutStr("*** ");
+  dbgPutC(axis->c.name);
+  dbgPutStr(" axis not idle\n\n");
+ }
 
  axisStateCheck(axis);
 }
@@ -1019,7 +1086,6 @@ void dbgPrt(int index, const char *label, const char *p)
  dbgPutStr(label);
  dbgPutC(*p++);
  dbgPutC(*p);
- dbgPutSpace();
  dbgPutHexByte(index);
  dbgNewLine();
 }
@@ -1124,10 +1190,12 @@ void axisMove(const P_AXIS_CTL axis)
   if ((cmd & ENA_RUNOUT) != 0)	/* if runout enabled */
   {
    const int syn = rVar.rRunoutSync;
-   dbgPrt(syn, "runoutSyn ", &selRunoutStr[syn].c0);
-   const P_AXIS_CTL aT = axis->c.other;	/* get other axis */
    if (syn != 0)
    {
+    dbgPrt(syn, "runoutSyn ", &selRunoutStr[syn].c0);
+    const P_AXIS_CTL aT = axis->c.other;	/* get other axis */
+    aT->curLoc = (int) rd(aT->c.base + F_Sync_Base + F_Rd_Loc);
+
     switch (syn)
     {
     case SEL_RU_STEP:
@@ -1138,35 +1206,53 @@ void axisMove(const P_AXIS_CTL axis)
 
     case SEL_RU_SYN:
     {
-     ld(F_Enc_Base + F_Ld_Enc_Prescale, rVar.rSynEncPreScaler-1);
-     ld(F_Enc_Base + F_Ld_Enc_Cycle, rVar.rSynEncCycle-1);
+     ld(F_Enc_Base + F_Ld_Enc_Prescale, rVar.rSynEncPreScaler);
+     ld(F_Enc_Base + F_Ld_Enc_Cycle, rVar.rSynEncCycle);
      ld(F_Enc_Base + F_Ld_Int_Cycle, rVar.rSynOutCycle);
 
-     ld(F_RunOut_Base + F_Ld_Run_Limit, rVar.rRunoutLimit);
+     ld(F_Ld_Sync_Ctl, SYN_ENC_INIT);
+     ld(F_Ld_Sync_Ctl, 0);
+     ld(F_Ld_Sync_Ctl, SYN_ENC_ENA | (ENC_CLK_CH << ENC_CLK_SHIFT));
+
+     int runoutLimit = rVar.rRunoutDist;
+     if ((cmd & SYN_LEFT) == 0)
+      runoutLimit = axis->dist - runoutLimit;
+
+     ld(F_RunOut_Base + F_Ld_Run_Limit, runoutLimit);
      ld(F_RunOut_Base + F_Ld_RunOut_Ctl, RUN_OUT_INIT);
      ld(F_RunOut_Base + F_Ld_RunOut_Ctl, 0);
 
-     int axisFlag = RUN_OUT_ENA;
-     if ((axis->ctlFlag & CTL_DIR) != 0)
-      axisFlag |= RUN_OUT_DIR;
-     ld(F_RunOut_Base + F_Ld_RunOut_Ctl, axisFlag);
-	 
-     int xAxisFlag = CTL_START | CTL_CH_DIRECT;
+     const int runoutFlag = ((cmd & SYN_LEFT) == 0 ?
+			     (RUN_OUT_ENA | RUN_OUT_DIR) : RUN_OUT_ENA);
+     ld(F_RunOut_Base + F_Ld_RunOut_Ctl, runoutFlag);
+
+     int xAxisFlag = CTL_SLAVE | CTL_CH_DIRECT;
 
      int depth = rVar.rRunoutDepth;
+     aT->dist = depth;
+
+     dbgPrtDist("depth", aT, depth);
+     dbgPrtLoc(" loc", aT, aT->curLoc);
+     dbgNewLine();
+
+     aT->expLoc = aT->curLoc + depth;
      if (depth > 0)
       xAxisFlag |= CTL_DIR;
      else
-      depth = -depth
+      depth = -depth;
 
      ld(aT->c.base + F_Sync_Base + F_Ld_Dist, depth);
 
      ld(aT->c.base + F_Ld_Axis_Ctl, CTL_INIT);
      ld(aT->c.base + F_Ld_Axis_Ctl, 0);
-
+	 
      ld(aT->c.base + F_Ld_Axis_Ctl, xAxisFlag);
+     dbgAxisCtl(aT->c.name, xAxisFlag);
 
      clockLoad(aT, CLK_INT_CLK);
+
+     aT->cmd = axis->cmd;
+     aT->state = RS_WAIT_RUNOUT;
     }
     break;
 
@@ -1211,6 +1297,8 @@ void axisMove(const P_AXIS_CTL axis)
   break;
  }
 
+ clockLoad(axis, clkSel);
+
  if (accelIndex >= 0)
  {
   axisLoad(axis, axis->c.accelOffset + accelIndex);
@@ -1222,14 +1310,10 @@ void axisMove(const P_AXIS_CTL axis)
 
   ld(axis->c.base + F_Ld_Axis_Ctl, flag);
 
-  dbgPutC(axis->c.name);
-  dbgPutStr(" axisMove start ");
-  dbgAxisStatus(axis);
+  dbgAxisStatus("axisMove start", axis);
   dbgStatus(rd(F_Rd_Status));
-  dbgInPin(rd(F_Rd_Inputs));
+  dbgInPin("rd", rd(F_Rd_Inputs));
  }
-
- clockLoad(axis, clkSel);
 }
 
 void axisHome(const P_AXIS_CTL axis, const int homeCmd)
@@ -1311,7 +1395,6 @@ void axisLoad(const P_AXIS_CTL axis, const int index)
  const char *p = &axisAccelTypeStr[index].c0;
  dbgPutC(*p++);
  dbgPutC(*p);
- dbgPutSpace();
  dbgPutHexByte(index);
  dbgNewLine();
 

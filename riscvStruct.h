@@ -42,7 +42,8 @@ typedef struct sRiscvVar
  int rThreadSync;       /* 0x0b R_THREAD_SYNC    thread sync */
  int rRunoutSync;       /* 0x0c R_RUNOUT_SYNC    runout sync */
  int rThreadFlags;      /* 0x0d R_THREAD_FLAGS   threading flags */
- int rRunoutLimit;      /* 0x0e R_RUNOUT_LIMIT   runout limit */
+ int rRunoutDist;       /* 0x0e R_RUNOUT_DIST    runout distance */
+ int rRunoutDepth;      /* 0x0f R_RUNOUT_DEPTH   runout depth */
 } T_RISCV_VAR, *P_RISCV_VAR;
 
 typedef struct

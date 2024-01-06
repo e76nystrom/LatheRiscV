@@ -121,7 +121,7 @@ void dbgMsg(const int dbg, const int val)
    dbgQue.fil = 0;		/* set to zero */
  }
 
- dbgPutStr("dbgMsg ");
+ dbgPutStr("dbgMsg");
  dbgPutHexByte(dbgQue.count);
  dbgPutSpace();
  const char *p = &dMessageStr[dbg].c0;
@@ -129,9 +129,7 @@ void dbgMsg(const int dbg, const int val)
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p);
- dbgPutSpace();
  dbgPutHexByte(dbg);
- dbgPutSpace();
  dbgPutHex(val, 4);
  dbgNewLine();
 }
@@ -330,16 +328,13 @@ void remCmd(void)
    dbg += 1;
    dbgPutC('*');
    dbgPutHexByte(dbg);
-   dbgPutSpace();
-
    dbgPutHexByte(parm);
-   dbgPutSpace();
    if ((parm & 0xff) < RISCV_CMD_STR_SIZE)
    {
+    dbgPutSpace();
     const char *p = &riscvCmdStr[parm].c0;
     dbgPutC(*p++);
     dbgPutC(*p);
-    dbgPutSpace();
    }
    else
    {
@@ -363,21 +358,18 @@ void remCmd(void)
     const P_RUN_DATA data = &runQue.data[runQue.fil];
     data->parm = parm;
     dbgPutHexByte(runQue.count);
-    dbgPutSpace();
     dbgPutHexByte(runQue.fil);
     dbgPutStr(" queued");
 
     if (n >= 1)
     {
      data->val1 = val1;
-     dbgPutSpace();
      dbgPutHex(val1, 4);
     }
 
     if (n >= 2)
     {
      data->val2 = val2;
-     dbgPutSpace();
      dbgPutHex(val2, 4);
     }
 
@@ -423,9 +415,8 @@ void remCmd(void)
 
     if (sent > 0)
     {
-     dbgPutStr("dbgMsg ");
+     dbgPutStr("dbgMsg");
      dbgPutHexByte(dbgQue.count);
-     dbgPutSpace();
      dbgPutHexByte(sent);
      dbgNewLine();
     }
@@ -489,7 +480,6 @@ void remCmd(void)
      dbgPutC('z');
      for (int i = 0; i < 4; i++)
      {
-      dbgPutSpace();
       fmtLoc(locBuf, &zAxis, *p++);
       dbgPutStr(locBuf);
      }
@@ -498,7 +488,6 @@ void remCmd(void)
      p = &xAxis.v.testLimMin;
      for (int i = 0; i < 4; i++)
      {
-      dbgPutSpace();
       fmtLoc(locBuf, &xAxis, *p++);
       dbgPutStr(locBuf);
      }
@@ -545,9 +534,8 @@ void remCmd(void)
 
    case R_SET_DATA:
    {
-    dbgPutStr("setData ");
+    dbgPutStr("setData");
     dbgPutHexByte(val1);
-    dbgPutSpace();
     dbgPutHex(val2, 4);
     dbgNewLine();
 
@@ -663,7 +651,7 @@ void runProcess(void)
   lastWait = wait;
   dbgMsg(D_MSTA, wait);
 
-  dbgPutStr("wait ");
+  dbgPutStr("wait");
   dbgPutHexByte(runCtl.wait);
   dbgPutSpace();
   const char *p = (char *) &riscvRunWaitStr[wait];
@@ -706,7 +694,7 @@ void runProcess(void)
   {
    if (runQue.emp < 0 || runQue.emp > RUN_DATA_SIZE)
    {
-    dbgPutStr("runQue.emp ");
+    dbgPutStr("runQue.emp");
     dbgPutHex(runQue.emp, 4);
     dbgNewLine();
    }
@@ -718,7 +706,7 @@ void runProcess(void)
 
    const int parm = data->parm;
 
-   dbgPutStr("q ");
+   dbgPutStr("q");
    dbgPutHexByte(parm);
    dbgPutSpace();
    if (parm < RISCV_CMD_STR_SIZE)
@@ -731,7 +719,6 @@ void runProcess(void)
    {
     dbgPutStr("out of range");
    }
-   dbgPutSpace();
    dbgPutHexByte(runQue.count);
    dbgNewLine();
 
@@ -793,9 +780,18 @@ void runProcess(void)
    case R_PASS:
    {
     const int pass = data->val1;
+    rVar.rCurPass = pass;
+
     dbgMsg(D_PASS, pass);
-    printf("\npass %d %d\n\n", pass >> 8 & 0xff, pass & 0xff);
-    rVar.rCurPass = data->val1;
+    dbgPutStr("\npass");
+    dbgPutInt(pass & 0xff);
+    int spring = pass >> 8 & 0xff;
+    if (spring != 0)
+    {
+     dbgPutStr(" spring");
+     dbgPutInt(spring);
+    }
+    dbgPutStr("\n\n");
    }
    break;
 
@@ -805,9 +801,8 @@ void runProcess(void)
 
    case R_SET_DATA_Q:
    {
-    dbgPutStr("setDataQ ");
+    dbgPutStr("setDataQ");
     dbgPutHexByte(data->val1);
-    dbgPutSpace();
     dbgPutHex(data->val2, 4);
     dbgNewLine();
 
@@ -877,13 +872,12 @@ void saveAccel(const int type, const int val)
  T_INT_BYTE tmp;
  tmp.iVal = type;
 
- dbgPutStr("saveAccel ");
+ dbgPutStr("saveAccel");
  dbgPutHex(type, 2);
  dbgPutSpace();
  const char *p = &axisAccelTypeStr[tmp.bVal[1]].c0;
  dbgPutC(*p++);
  dbgPutC(*p);
- dbgPutSpace();
  dbgPutHex(val, 4);
  dbgNewLine();
 

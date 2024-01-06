@@ -157,13 +157,25 @@ int main(void)
  printf("runQue %x\n", (uint32_t) &runQue);
 #endif
 
+ dbgPutStr("zMpg");
  for (int i = 1; i < 32; i++)
  {
   int const tmp = CFS->zMpg;
-  printf("tmp %x\n", tmp);
+  dbgPutHex(tmp, 2);
   if (tmp & 0x100)
    break;
  }
+ dbgNewLine();
+
+ dbgPutStr("xMpg");
+ for (int i = 1; i < 32; i++)
+ {
+  int const tmp = CFS->xMpg;
+  dbgPutHex(tmp, 2);
+  if (tmp & 0x100)
+   break;
+ }
+ dbgNewLine();
  
  neorv32_gpio_port_set(0);
  

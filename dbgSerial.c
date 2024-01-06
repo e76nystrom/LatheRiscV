@@ -15,6 +15,7 @@ void dbgPutHexByte(char ch);
 void dbgPutHex(unsigned int val, int size);
 
 char* dbgFmtNum(char *buf, int val);
+void dbgPutInt(int val);
 
 #endif	/* DBG_SERIAL_INCLUDE */ // ->
 #if defined(LATHECPP_DBG_SERIAL)
@@ -66,6 +67,7 @@ void dbgPutDigit(char ch)
 
 void dbgPutHexByte(const char ch)
 {
+ dbgPutSpace();
  const char tmp = ch >> 4;
  dbgPutDigit(tmp);
  dbgPutDigit(ch);
@@ -73,6 +75,7 @@ void dbgPutHexByte(const char ch)
 
 void dbgPutHex(unsigned int val, int size)
 {
+ dbgPutSpace();
  const unsigned char *p = (unsigned char *) &val;
  p += size;
  while (size != 0)
@@ -110,6 +113,7 @@ char* dbgFmtNum(char *buf, int val)
   i += 1;
  }
 
+ *p1++ = ' ';
  if (neg)
   *p1++ = '-';
 
@@ -146,4 +150,40 @@ char* dbgFmtNum(char *buf, int val)
  return buf;
 }
 
+void dbgPutInt(int val)
+{
+ dbgPutSpace();
+ if (val == 0)
+  dbgPutC('0');
+ else
+ {
+  char buf[16];
+  char *p = buf;
+  int i = 0;
+
+  int neg = 0;
+  if (val < 0)
+  {
+   neg = 1;
+   val = -val;
+  }
+ 
+  while (val != 0)
+  {
+   *p++ = val % 10 + '0';
+   val /= 10;
+   i += 1;
+  }
+
+
+  if (neg != 0)
+   dbgPutC('-');
+
+  while (--i >= 0)
+   dbgPutC(*--p);
+ }
+}
+
 #endif	/* LATHECPP_DBG_SERIAL */
+
+

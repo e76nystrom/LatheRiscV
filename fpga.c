@@ -63,15 +63,18 @@ inline void nopR(void)
 
 void ld(const int op, const int val)
 {
- dbgPutStr("ld ");
+ dbgPutStr("ld");
  dbgPutHexByte(op);
- dbgPutC(' ');
+ dbgPutSpace();
  const char *p = &fpgaOpStr[op].c0;
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p++);
  dbgPutC(*p);
- printf(" %x %d\n", val, val);
+
+ dbgPutHex(val, 4);
+ dbgPutInt(val);
+ dbgNewLine();
 
  CFS->data = val;
  CFS->op = op;
