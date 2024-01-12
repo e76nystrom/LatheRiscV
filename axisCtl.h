@@ -126,10 +126,7 @@ char *fmtDist(char *buf, P_AXIS_CTL axis, int dist);
 void dbgPrtLoc(const char *str, const P_AXIS_CTL axis, int loc);
 void dbgPrtDist(const char *str, const P_AXIS_CTL axis, int dist);
 
-void initAccelTable(void);
-
 void dbgAxisInit(P_AXIS_CTL axis);
-void initAxisCtl(void);
 
 void dbgStatus(int status);
 void dbgAxisCtl(char name, int val);
@@ -137,6 +134,13 @@ void dbgMvStatus(int val);
 void dbgJogPause(int val);
 void dbgAxisStatus(const char *str, const P_AXIS_CTL axis);
 void dbgInPin(const char *str, const int val);
+void dbgAxisState(const P_AXIS_CTL axis);
+void dbgMoveCmd(const int cmd);
+void dbgSelPrt(int index, const char *label, const char *p);
+
+void initAccelTable(void);
+
+void initAxisCtl(void);
 
 void axisCtl(void);
 void axisStateCheck(P_AXIS_CTL axis);
@@ -149,6 +153,7 @@ void moveRel(P_AXIS_CTL axis, int dist, int cmd);
 void moveBacklash(P_AXIS_CTL axis);
 void setLoc(P_AXIS_CTL axis, int loc);
 void axisStop(P_AXIS_CTL axis);
+void encScalerSetup(void);
 void axisMove(P_AXIS_CTL axis);
 void axisHome(P_AXIS_CTL axis, int homeCmd);
 void clockLoad(P_AXIS_CTL axis, int clkSel);

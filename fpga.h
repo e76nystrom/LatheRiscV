@@ -11,6 +11,7 @@ typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
  uint32_t zMpg;			/* 5 */
  uint32_t xMpg;			/* 6 */
  uint32_t inPin;		/* 7 */
+ uint32_t dbg;			/* 8 */
 } T_CFS, *P_CFS;
 
 #define MPG_MASK  0x7f

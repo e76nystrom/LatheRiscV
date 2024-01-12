@@ -39,9 +39,12 @@ typedef struct S_RUN_QUE
 
 EXT T_RUN_QUE runQue;
 
+#define SPIN_WAIT_TIME 100
+
 typedef struct S_RUN_CTL
 {
  enum RISCV_RUN_WAIT wait;
+ unsigned int spinWaitTime;
 } T_RUN_CTL, *P_RUN_CTL;
 
 EXT T_RUN_CTL runCtl;
@@ -121,7 +124,8 @@ void dbgMsg(const int dbg, const int val)
    dbgQue.fil = 0;		/* set to zero */
  }
 
- dbgPutStr("dbgMsg");
+ if (dbgM0) {
+ dbgPutStr("dbgMsg<");
  dbgPutHexByte(dbgQue.count);
  dbgPutSpace();
  const char *p = &dMessageStr[dbg].c0;
@@ -131,7 +135,7 @@ void dbgMsg(const int dbg, const int val)
  dbgPutC(*p);
  dbgPutHexByte(dbg);
  dbgPutHex(val, 4);
- dbgNewLine();
+ dbgNewLine(); }
 }
 
 void clrDbgBuf(void)
@@ -291,58 +295,48 @@ void remCmd(void)
  rspPut(0);
 #endif
 
-#if 0
+#if dbg2 == 0
  remRxSkip(2);
+ int cmdLen;
 #else
  int cmdLen = remGetHexByte();
 #endif
 
- dbg = 0;
+ if (dbgM) {
+  dbg = 0; }
  while (true)
  {
-  // char tmp1 = remCtl.rx_emp;
-  // char tmp2 = remCtl.rx_buffer[remCtl.rx_emp];
-
   if (remGetHex(&parm) == 0)	/* read parameter */
    break;
 
-  // if (parm > R_READ_ALL &&
-  //     parm != R_GET_DATA)
-  if (cmdPrtDisable[parm] == 0)
-  {
-   // dbgPutHexByte(tmp1);
-   // dbgPutSpace();
-   // dbgPutC(tmp2);
-   // dbgPutSpace();
-   // dbgPutHexByte((remCtl.rx_emp - tmp1) & (REM_RX_SIZE-1));
-   // dbgPutSpace();
+  if (dbg2) {
+   if (cmdPrtDisable[parm] == 0)
+   {
+    if (cmdLen != 0)
+    {
+     dbgPutC('=');
+     dbgPutHexByte(cmdLen);
+     dbgNewLine();
+     cmdLen = 0;
+    }
 
-   if (cmdLen != 0)
-   {
-    dbgPutC('=');
-    dbgPutHexByte(cmdLen);
-    dbgNewLine();
-    cmdLen = 0;
-   }
-
-   dbg += 1;
-   dbgPutC('*');
-   dbgPutHexByte(dbg);
-   dbgPutHexByte(parm);
-   if ((parm & 0xff) < RISCV_CMD_STR_SIZE)
-   {
-    dbgPutSpace();
-    const char *p = &riscvCmdStr[parm].c0;
-    dbgPutC(*p++);
-    dbgPutC(*p);
-   }
-   else
-   {
-    dbgPutStr("**err**");
-   }
-   // dbgPutHexByte(parm);
-   // dbgPutSpace();
-  }
+    dbg += 1;
+    dbgPutC('*');
+    dbgPutHexByte(dbg);
+    dbgPutHexByte(parm);
+    if ((parm & 0xff) < RISCV_CMD_STR_SIZE)
+    {
+     dbgPutSpace();
+     const char *p = &riscvCmdStr[parm].c0;
+     dbgPutC(*p++);
+     dbgPutC(*p);
+     dbgPutSpace();
+    }
+    else
+    {
+     dbgPutStr("**err**");
+    }
+   } }
 
   const int n = riscvCmdSize[parm];
   if (n >= 1)
@@ -357,20 +351,24 @@ void remCmd(void)
    {
     const P_RUN_DATA data = &runQue.data[runQue.fil];
     data->parm = parm;
-    dbgPutHexByte(runQue.count);
-    dbgPutHexByte(runQue.fil);
-    dbgPutStr(" queued");
+
+    if (dbg2) {
+     dbgPutHexByte(runQue.count);
+     dbgPutHexByte(runQue.fil);
+     dbgPutStr(" queued"); }
 
     if (n >= 1)
     {
      data->val1 = val1;
-     dbgPutHex(val1, 4);
+     if (dbg2) {
+      dbgPutHex(val1, 4); }
     }
 
     if (n >= 2)
     {
      data->val2 = val2;
-     dbgPutHex(val2, 4);
+     if (dbg2) {
+      dbgPutHex(val2, 4); }
     }
 
     runQue.fil += 1;
@@ -378,7 +376,8 @@ void remCmd(void)
      runQue.fil = 0;
     runQue.count += 1;
    }
-   dbgNewLine();
+    if (dbg2) {
+     dbgNewLine(); }
   }
   else
   {
@@ -389,39 +388,42 @@ void remCmd(void)
 
    case R_READ_DBG:
    {
-    rspPutHexByte(parm);
-    int sent = 0;
-    do
-    {
-     if (dbgQue.count == 0 ||	/* if  no data */
-	 RSP_BUF_SIZE - rspCtl.count < MAX_DBG_SIZE) /* of no space */
-      break;
+    if (dbgM) {
+     rspPutHexByte(parm);
+     int sent = 0;
+     do
+     {
+      if (dbgQue.count == 0 ||	/* if  no data */
+	  RSP_BUF_SIZE - rspCtl.count < MAX_DBG_SIZE) /* of no space */
+       break;
 
-     val1 -= 1;
-     dbgQue.count -= 1;		/* count off a message */
+      val1 -= 1;
+      dbgQue.count -= 1;		/* count off a message */
 
-     const P_DEBUG_DATA p = &dbgQue.data[dbgQue.emp]; /* get pointer to data */
-     dbgQue.emp++;		 /* update empty pointer */
-     if (dbgQue.emp >= DEBUG_DATA_SIZE) /* if past end */
-      dbgQue.emp = 0;		/* point back to beginning */
+      const P_DEBUG_DATA p = &dbgQue.data[dbgQue.emp]; /* get pointer to data */
+      dbgQue.emp++;		 /* update empty pointer */
+      if (dbgQue.emp >= DEBUG_DATA_SIZE) /* if past end */
+       dbgQue.emp = 0;		/* point back to beginning */
 
-     rspPut(p->dbg);
-     const char *p1 = (char *) &p->val;
-     for (int i = 0; i < sizeof(p->val); i++)
-      rspPut(*p1++);
+      rspPut(p->dbg);
+      const char *p1 = (char *) &p->val;
+      for (int i = 0; i < sizeof(p->val); i++)
+       rspPut(*p1++);
 
-     sent += 1;
-    } while (val1 > 0);		/* while more requested */
+      sent += 1;
+     } while (val1 > 0);		/* while more requested */
 
-    if (sent > 0)
-    {
-     dbgPutStr("dbgMsg");
-     dbgPutHexByte(dbgQue.count);
-     dbgPutHexByte(sent);
-     dbgNewLine();
+
+     if (dbgM0) {
+      if (sent > 0)
+      {
+       dbgPutStr("dbgMsg>");
+       dbgPutHexByte(dbgQue.count);
+       dbgPutHexByte(sent);
+       dbgNewLine();
+      } }
     }
-   }
-   dbg = -1;
+    dbg = -1; }
    break;
 
    case R_READ_ALL:
@@ -434,7 +436,8 @@ void remCmd(void)
     rspPutHex(xAxis.dro, sizeof(xAxis.dro));
     rspPutHex(rVar.rMvStatus, 2);
     rspPutHex(dbgQue.count, 1);
-    dbg = -1;
+    if (dbgM) {
+     dbg = -1; }
     break;
 
    case R_STOP:
@@ -451,13 +454,22 @@ void remCmd(void)
     break;
 
    case R_SETUP:
-    dbgPutStr("setup\n");
+    if (dbg2) {
+     dbgPutStr("setup\n"); }
+
+    ld(F_Ld_Sync_Ctl, 0);
+    ld(F_Ld_Clk_Ctl, 0);
+    ld(F_RunOut_Base + F_Ld_RunOut_Ctl, 0);
+    ld(F_ZAxis_Base + F_Ld_Axis_Ctl, 0);
+    ld(F_XAxis_Base + F_Ld_Axis_Ctl, 0);
+
     rVar.rMvStatus = 0;
     runInit();
     break;
 
    case R_RESUME:
-    dbgPutStr("resume\n");
+    if (dbg2) {
+     dbgPutStr("resume\n"); }
     if (runCtl.wait == RW_PAUSE)
      runCtl.wait = RW_NONE;
 
@@ -474,7 +486,8 @@ void remCmd(void)
 
    case R_SEND_DONE:
     configSetup();
-    {
+
+    if (dbg2) {
      char locBuf[16];
      const int *p = &zAxis.v.testLimMin;
      dbgPutC('z');
@@ -491,8 +504,7 @@ void remCmd(void)
       fmtLoc(locBuf, &xAxis, *p++);
       dbgPutStr(locBuf);
      }
-     dbgNewLine();
-    }
+     dbgNewLine(); }
     break;
 
    case R_SET_LOC_X:
@@ -502,7 +514,8 @@ void remCmd(void)
     CFS->ctl = RISCV_DATA;
 #endif
     setLoc(&xAxis, val1);
-    dbgMsg(D_XLOC, val1);
+    if (dbgM) {
+     dbgMsg(D_XLOC, val1); }
     break;
 
    case R_SET_LOC_Z:
@@ -513,7 +526,8 @@ void remCmd(void)
 #endif
     ld(F_Ld_Cfg_Ctl, CFG_DRO_STEP | CFG_ZDRO_INV | CFG_XDRO_INV);
     setLoc(&zAxis, val1);
-    dbgMsg(D_ZLOC, val1);
+    if (dbgM) {
+     dbgMsg(D_ZLOC, val1); }
     break;
 
    case R_STR_SPIN:
@@ -534,10 +548,11 @@ void remCmd(void)
 
    case R_SET_DATA:
    {
-    dbgPutStr("setData");
-    dbgPutHexByte(val1);
-    dbgPutHex(val2, 4);
-    dbgNewLine();
+    if (dbg2) {
+     dbgPutStr("setData");
+     dbgPutHexByte(val1);
+     dbgPutHex(val2, 4);
+     dbgNewLine(); }
 
     T_DATA_UNION val;
     val.t_int = val2;
@@ -578,12 +593,13 @@ void remCmd(void)
   // runProcess();
  } /* end while(true) */
 
- if (dbg > 0)
- {
-  dbgPutStr("@");
-  dbgPutHexByte(dbg);
-  dbgNewLine();
- }
+ if (dbgM) {
+  if (dbg > 0)
+  {
+   dbgPutStr("@");
+   dbgPutHexByte(dbg);
+   dbgNewLine();
+  } }
 
  const int free = RUN_DATA_SIZE - runQue.count;
 
@@ -623,17 +639,28 @@ void runInit(void)
 
 void spindleCheck(void)
 {
- if (indexData.clocks != 0)
+ const unsigned int t = millis();
+ if ((t - runCtl.spinWaitTime) > SPIN_WAIT_TIME)
  {
-  if (indexData.clocks != indexData.lastClocks)
+  runCtl.spinWaitTime = t;
+  if (indexData.clocks != 0)
   {
-   indexData.lastClocks = indexData.clocks;
-   int delta = (int) indexData.clocks - (int) indexData.lastClocks;
-   if (delta < 0)
-    delta = -delta;
-   const int percent = delta * 1000 / (int) indexData.clocks;
-   if (percent < 10)
-    runCtl.wait = RW_NONE;
+   if (dbg2) {
+   const uint32_t encClocks = rd(F_Index_Base + F_Rd_Encoder_Clks);
+   dbgPutStr("encClocks");
+   dbgPutInt(encClocks);
+   dbgNewLine(); }
+
+   if (indexData.clocks != indexData.lastClocks)
+   {
+    indexData.lastClocks = indexData.clocks;
+    int delta = (int) indexData.clocks - (int) indexData.lastClocks;
+    if (delta < 0)
+     delta = -delta;
+    const int percent = delta * 1000 / (int) indexData.clocks;
+    if (percent < 10)
+     runCtl.wait = RW_NONE;
+   }
   }
  }
 }
@@ -649,15 +676,12 @@ void runProcess(void)
  if (wait != lastWait)
  {
   lastWait = wait;
-  dbgMsg(D_MSTA, wait);
+  if (dbgM) {
+   dbgMsg(D_MSTA, wait); }
 
-  dbgPutStr("wait");
-  dbgPutHexByte(runCtl.wait);
-  dbgPutSpace();
-  const char *p = (char *) &riscvRunWaitStr[wait];
-  dbgPutC(*p++);
-  dbgPutC(*p);
-  dbgNewLine();
+  if (dbg2) {
+   dbgSelPrt(wait, "wait", &riscvRunWaitStr[wait].c0);
+   dbgNewLine(); }
  }
 
  if (wait != RW_NONE)
@@ -673,7 +697,8 @@ void runProcess(void)
     break;
 
    case RW_SPIN_STOP:
-    dbgPutStr("spindle stop\n");
+    if (dbg2) {
+     dbgPutStr("spindle stop\n"); }
     runCtl.wait = RW_NONE;
     break;
 
@@ -683,7 +708,8 @@ void runProcess(void)
 
    case RW_NONE:
    default:
-    dbgPutStr("invalid wait\n");
+    if (dbg2) {
+     dbgPutStr("invalid wait\n"); }
     runCtl.wait = RW_NONE;
     break;
   }
@@ -692,12 +718,13 @@ void runProcess(void)
  {
   if (runQue.count != 0)
   {
-   if (runQue.emp < 0 || runQue.emp > RUN_DATA_SIZE)
-   {
-    dbgPutStr("runQue.emp");
-    dbgPutHex(runQue.emp, 4);
-    dbgNewLine();
-   }
+   if (dbg2) {
+    if (runQue.emp < 0 || runQue.emp > RUN_DATA_SIZE)
+    {
+     dbgPutStr("runQue.emp");
+     dbgPutHex(runQue.emp, 4);
+     dbgNewLine();
+    } }
    const P_RUN_DATA data = &runQue.data[runQue.emp];
    runQue.emp += 1;
    if (runQue.emp >= RUN_DATA_SIZE)
@@ -706,29 +733,32 @@ void runProcess(void)
 
    const int parm = data->parm;
 
-   dbgPutStr("q");
-   dbgPutHexByte(parm);
-   dbgPutSpace();
-   if (parm < RISCV_CMD_STR_SIZE)
-   {
-    const char *p = &riscvCmdStr[parm].c0;
-    dbgPutC(*p++);
-    dbgPutC(*p);
-   }
-   else
-   {
-    dbgPutStr("out of range");
-   }
-   dbgPutHexByte(runQue.count);
-   dbgNewLine();
+   if (dbg2) {
+    dbgPutStr("q");
+    dbgPutHexByte(parm);
+    dbgPutSpace();
+    if (parm < RISCV_CMD_STR_SIZE)
+    {
+     const char *p = &riscvCmdStr[parm].c0;
+     dbgPutC(*p++);
+     dbgPutC(*p);
+    }
+    else
+    {
+     dbgPutStr("out of range");
+    }
+    dbgPutHexByte(runQue.count);
+    dbgNewLine(); }
 
-   if (data->parm != R_SET_ACCEL_Q)
-    dbgMsg(D_MCMD, data->parm);
+   if (dbgM) {
+    if (data->parm != R_SET_ACCEL_Q)
+     dbgMsg(D_MCMD, data->parm); }
 
    switch (data->parm)
    {
    case R_OP_START:
-    dbgMsg(D_DONE, PARM_START);
+    if (dbgM) {
+     dbgMsg(D_DONE, PARM_START); }
 
     rVar.rMvStatus &= ~MV_DONE;
     rVar.rMvStatus |= MV_ACTIVE;
@@ -740,7 +770,8 @@ void runProcess(void)
     break;
 
    case R_OP_DONE:
-    dbgMsg(D_DONE, PARM_DONE);
+    if (dbgM) {
+     dbgMsg(D_DONE, PARM_DONE); }
 
     rVar.rThreadFlags = 0;
     rVar.rMvStatus &= ~MV_ACTIVE;
@@ -752,7 +783,8 @@ void runProcess(void)
     break;
 
    case R_PAUSE:
-    dbgPutStr("pause\n");
+    if (dbg2) {
+     dbgPutStr("pause\n"); }
 
     rVar.rJogPause = DISABLE_JOG | data->val1;
 
@@ -770,11 +802,15 @@ void runProcess(void)
     break;
 
    case R_STR_SPIN_Q:
+    spindleStart();
     runCtl.wait = RW_SPIN_START;
+    runCtl.spinWaitTime = millis();
     break;
 
    case R_STP_SPIN_Q:
+    spindleStop();
     runCtl.wait = RW_SPIN_STOP;
+    runCtl.spinWaitTime = millis();
     break;
 
    case R_PASS:
@@ -782,16 +818,19 @@ void runProcess(void)
     const int pass = data->val1;
     rVar.rCurPass = pass;
 
-    dbgMsg(D_PASS, pass);
-    dbgPutStr("\npass");
-    dbgPutInt(pass & 0xff);
-    int spring = pass >> 8 & 0xff;
-    if (spring != 0)
-    {
-     dbgPutStr(" spring");
-     dbgPutInt(spring);
-    }
-    dbgPutStr("\n\n");
+    if (dbgM) {
+     dbgMsg(D_PASS, pass); }
+
+    if (dbg2) {
+     dbgPutStr("\npass");
+     dbgPutInt(pass & 0xff);
+     const int spring = pass >> 8 & 0xff;
+     if (spring != 0)
+     {
+      dbgPutStr(" spring");
+      dbgPutInt(spring);
+     }
+     dbgPutStr("\n\n"); }
    }
    break;
 
@@ -801,14 +840,15 @@ void runProcess(void)
 
    case R_SET_DATA_Q:
    {
-    dbgPutStr("setDataQ");
-    dbgPutHexByte(data->val1);
-    dbgPutHex(data->val2, 4);
-    dbgNewLine();
+    if (dbg2) {
+     dbgPutStr("setDataQ");
+     dbgPutHexByte(data->val1);
+     dbgPutHex(data->val2, 4);
+     dbgNewLine();
 
-    T_DATA_UNION val;
-    val.t_int = data->val2;
-    setRiscvVar(data->val1, val);
+     T_DATA_UNION val;
+     val.t_int = data->val2;
+     setRiscvVar(data->val1, val); }
    }
    break;
 
@@ -829,7 +869,8 @@ void runProcess(void)
     break;
 
    default:
-    dbgPutStr("invalid cmd\n");
+    if (dbg2) {
+     dbgPutStr("invalid cmd\n"); }
     break;
    }
   }
@@ -872,14 +913,14 @@ void saveAccel(const int type, const int val)
  T_INT_BYTE tmp;
  tmp.iVal = type;
 
- dbgPutStr("saveAccel");
- dbgPutHex(type, 2);
- dbgPutSpace();
- const char *p = &axisAccelTypeStr[tmp.bVal[1]].c0;
- dbgPutC(*p++);
- dbgPutC(*p);
- dbgPutHex(val, 4);
- dbgNewLine();
+ if (dbg2) {
+  dbgPutStr("saveAccel ");
+  const char *p = &axisAccelTypeStr[tmp.bVal[1]].c0;
+  dbgPutC(*p++);
+  dbgPutC(*p);
+  dbgPutHex(type, 2);
+  dbgPutHex(val, 4);
+  dbgNewLine(); }
 
  const P_ACCEL_DATA accel = accelData[tmp.bVal[1]];
  switch (tmp.bVal[0])

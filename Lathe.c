@@ -33,6 +33,13 @@ int spiEna = 0;
 
 #if defined(LATHE_INCLUDE)	// <-
 
+#define dbg0 0			/* Lathe.c */
+#define dbg1 0			/* fpga.c */
+#define dbg2 0			/* remCmd.c */
+#define dbg3 0			/* axisctl.c */
+#define dbgM 1			/* dbgMsg() */
+#define dbgM0 0           	/* dbgMsg() debug prints */
+
 typedef struct S_CH2
 {
  char c0;
@@ -109,23 +116,24 @@ int main(void)
    CFG_XPLUS_INV | CFG_PROBE_INV);
 #endif
 
- int mask = 1;
- for (int i = 0; i < INPUTS_SIZE; i++)
- {
-  CFS->inPin = mask;
-  dbgPutStr("mask   ");
-  dbgInPin(mask);
+ if (dbg0) {
+  int mask = 1;
+  for (int i = 0; i < INPUTS_SIZE; i++)
+  {
+   CFS->inPin = mask;
+   dbgPutStr("mask   ");
+   dbgInPin(mask);
 
-  dbgPutStr("inputs ");
-  dbgInPin(rd(F_Rd_Inputs));
+   dbgPutStr("inputs ");
+   dbgInPin(rd(F_Rd_Inputs));
 
-  dbgPutStr("z axis ");
-  dbgAxisStatus(&zAxis);
+   dbgPutStr("z axis ");
+   dbgAxisStatus(&zAxis);
 
-  dbgPutStr("x axis ");
-  dbgAxisStatus(&xAxis);
-  mask <<= 1;
- }
+   dbgPutStr("x axis ");
+   dbgAxisStatus(&xAxis);
+   mask <<= 1;
+  } }
 
 #endif
 
@@ -157,25 +165,26 @@ int main(void)
  printf("runQue %x\n", (uint32_t) &runQue);
 #endif
 
- dbgPutStr("zMpg");
- for (int i = 1; i < 32; i++)
- {
-  int const tmp = CFS->zMpg;
-  dbgPutHex(tmp, 2);
-  if (tmp & 0x100)
-   break;
- }
- dbgNewLine();
+ if (dbg0) {
+  dbgPutStr("zMpg");
+  for (int i = 1; i < 32; i++)
+  {
+   int const tmp = CFS->zMpg;
+   dbgPutHex(tmp, 2);
+   if (tmp & 0x100)
+    break;
+  }
+  dbgNewLine();
 
- dbgPutStr("xMpg");
- for (int i = 1; i < 32; i++)
- {
-  int const tmp = CFS->xMpg;
-  dbgPutHex(tmp, 2);
-  if (tmp & 0x100)
-   break;
- }
- dbgNewLine();
+  dbgPutStr("xMpg");
+  for (int i = 1; i < 32; i++)
+  {
+   int const tmp = CFS->xMpg;
+   dbgPutHex(tmp, 2);
+   if (tmp & 0x100)
+    break;
+  }
+  dbgNewLine(); }
  
  neorv32_gpio_port_set(0);
  
@@ -188,9 +197,13 @@ int main(void)
   if (remCtl.remCmdRcv)
   {
    remCtl.remCmdRcv = 0;
+   CFS->dbg = 1;
    remCmd();
   }
+  CFS->dbg = 2;
   axisCtl();
+  CFS->dbg = 4;
   runProcess();
+  CFS->dbg = 0;
  }
 }

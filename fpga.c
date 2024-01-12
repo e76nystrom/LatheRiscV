@@ -21,6 +21,7 @@ typedef volatile struct __attribute__((packed,aligned(4))) S_CFS
  uint32_t zMpg;			/* 5 */
  uint32_t xMpg;			/* 6 */
  uint32_t inPin;		/* 7 */
+ uint32_t dbg;			/* 8 */
 } T_CFS, *P_CFS;
 
 #define MPG_MASK  0x7f
@@ -63,18 +64,19 @@ inline void nopR(void)
 
 void ld(const int op, const int val)
 {
- dbgPutStr("ld");
- dbgPutHexByte(op);
- dbgPutSpace();
- const char *p = &fpgaOpStr[op].c0;
- dbgPutC(*p++);
- dbgPutC(*p++);
- dbgPutC(*p++);
- dbgPutC(*p);
+ if (dbg1) {
+  dbgPutStr("ld");
+  dbgPutHexByte(op);
+  dbgPutSpace();
+  const char *p = &fpgaOpStr[op].c0;
+  dbgPutC(*p++);
+  dbgPutC(*p++);
+  dbgPutC(*p++);
+  dbgPutC(*p);
 
- dbgPutHex(val, 4);
- dbgPutInt(val);
- dbgNewLine();
+  dbgPutHex(val, 4);
+  dbgPutInt(val);
+  dbgNewLine(); }
 
  CFS->data = val;
  CFS->op = op;

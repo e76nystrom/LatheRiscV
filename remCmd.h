@@ -21,9 +21,12 @@ typedef struct S_RUN_QUE
 
 EXT T_RUN_QUE runQue;
 
+#define SPIN_WAIT_TIME 100
+
 typedef struct S_RUN_CTL
 {
  enum RISCV_RUN_WAIT wait;
+ unsigned int spinWaitTime;
 } T_RUN_CTL, *P_RUN_CTL;
 
 EXT T_RUN_CTL runCtl;
