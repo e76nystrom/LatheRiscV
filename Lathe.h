@@ -1,12 +1,13 @@
 #if !defined(LATHE_INC)	// <-
 #define LATHE_INC
 
-#define dbg0 0			/* Lathe.c */
-#define dbg1 0			/* fpga.c */
-#define dbg2 0			/* remCmd.c */
-#define dbg3 0			/* axisctl.c */
+#define dbg0 1			/* Lathe.c */
+#define dbg1 1			/* fpga.c */
+#define dbg2 1			/* remCmd.c */
+#define dbg3 1			/* axisctl.c */
+#define dbg3L 1			/* axisctl.c loc */
 #define dbgM 1			/* dbgMsg() */
-#define dbgM0 0           	/* dbgMsg() debug prints */
+#define dbgM0 1           	/* dbgMsg() debug prints */
 
 typedef struct S_CH2
 {

@@ -99,6 +99,7 @@ typedef struct S_AXIS_CTL
  int backlashSteps;		/* backlash steps */
  int mpgAxisCtl;		/* axis dtl mpg mode */
  int inputStatus;		/* input signal status */
+ uint32_t lastLoc;
  T_AXIS_VAR v;
  T_AXIS_CONSTANT c;		/* axis constant data */
 } T_AXIS_CTL, *P_AXIS_CTL;

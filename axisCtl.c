@@ -116,6 +116,7 @@ typedef struct S_AXIS_CTL
  int backlashSteps;		/* backlash steps */
  int mpgAxisCtl;		/* axis dtl mpg mode */
  int inputStatus;		/* input signal status */
+ uint32_t lastLoc;
  T_AXIS_VAR v;
  T_AXIS_CONSTANT c;		/* axis constant data */
 } T_AXIS_CTL, *P_AXIS_CTL;
@@ -574,7 +575,20 @@ void axisCheck(const P_AXIS_CTL axis, const int status)
  const int base = axis->c.base;
 
  axis->dro = (int) rd(base + F_Sync_Base + F_Rd_Dro);
- axis->curLoc = (int) rd(base + F_Sync_Base + F_Rd_Loc);
+ const int curLoc = (int) rd(base + F_Sync_Base + F_Rd_Loc);
+ if (dbg3L) {
+  if (curLoc != axis->curLoc)
+  {
+   const uint32_t t = millis();
+   if ((t - axis->lastLoc) >= 100)
+   {
+    axis->lastLoc = t;
+    dbgPutC(axis->c.name);
+    dbgPrtLoc(" loc", axis, curLoc);
+    dbgNewLine();
+   }
+  } }
+ axis->curLoc = curLoc;
 
 #if defined(INPUT_TEST)
 
@@ -621,7 +635,9 @@ void axisCheck(const P_AXIS_CTL axis, const int status)
   if (status & doneStat)
   {
    if (dbg3) {
-    dbgAxisStatus("axis done", axis); }
+    dbgAxisStatus("axis done", axis);
+    dbgPrtLoc("loc", axis, curLoc);
+    dbgNewLine(); }
 
    if (state == RS_WAIT_BACKLASH)
    {
@@ -632,11 +648,15 @@ void axisCheck(const P_AXIS_CTL axis, const int status)
    }
    else if ((stateMask & WAIT_MASK) != 0)
    {
-    ld(F_RunOut_Base + F_Ld_RunOut_Ctl, 0);
+    if (rVar.rRunoutDist != 0)
+     ld(F_RunOut_Base + F_Ld_RunOut_Ctl, 0);
     
     // axis->endDist = (int) rd(base + F_Sync_Base + F_Rd_Dist);
     axis->endLoc =  (int) rd(base + F_Sync_Base + F_Rd_Loc);
     axis->endDro =  (int) rd(base + F_Sync_Base + F_Rd_Dro);
+    // if (dbg3) {
+    //  dbgPrtLoc("encLoc", axis, axis->endLoc);
+    //  dbgNewLine(); }
     
     if ((axis->ctlFlag & CTL_CH_DIRECT) != 0)
      ld(F_Ld_Sync_Ctl, 0);
