@@ -37,7 +37,8 @@ int spiEna = 0;
 #define dbg1 1			/* fpga.c */
 #define dbg2 1			/* remCmd.c */
 #define dbg3 1			/* axisctl.c */
-#define dbg3L 1			/* axisctl.c loc */
+#define dbg3L 0			/* axisctl.c loc */
+#define dbg3I 0			/* axisctl.c index clock */
 #define dbgM 1			/* dbgMsg() */
 #define dbgM0 1           	/* dbgMsg() debug prints */
 

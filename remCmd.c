@@ -648,19 +648,45 @@ void spindleCheck(void)
    if (dbg2) {
    const uint32_t encClocks = rd(F_Index_Base + F_Rd_Encoder_Clks);
    dbgPutStr("encClocks");
-   dbgPutInt(encClocks);
-   dbgNewLine(); }
+   dbgPutInt(encClocks); }
 
-   if (indexData.clocks != indexData.lastClocks)
+   if (indexData.lastClocks != 0)
    {
-    indexData.lastClocks = indexData.clocks;
-    int delta = (int) indexData.clocks - (int) indexData.lastClocks;
-    if (delta < 0)
-     delta = -delta;
-    const int percent = delta * 1000 / (int) indexData.clocks;
-    if (percent < 10)
-     runCtl.wait = RW_NONE;
+    if (dbg2) {
+     dbgPutStr(" clocks");
+     dbgPutInt(indexData.clocks); }
+
+    if (indexData.clocks != indexData.lastClocks)
+    {
+     int delta = (int) indexData.clocks - (int) indexData.lastClocks;
+
+     if (dbg2) {
+      dbgPutStr(" last");
+      dbgPutInt(indexData.lastClocks);
+      dbgPutStr(" delta");
+      dbgPutInt(delta); }
+
+     if (delta < 0)
+      delta = -delta;
+
+     if (dbg2) {
+      dbgPutStr(" delta");
+      dbgPutInt(delta); }
+
+     const int percent = (delta * 1000) / (int) indexData.clocks;
+     if (percent < 10)
+      runCtl.wait = RW_NONE;
+
+     if (dbg2) {
+      dbgPutInt(percent);
+      dbgPutStr(" % rpm");
+      dbgPutInt(indexData.rpm); }
+    }
    }
+   indexData.lastClocks = indexData.clocks;
+   
+   if (dbg2) {
+    dbgNewLine(); }
   }
  }
 }
@@ -879,21 +905,53 @@ void runProcess(void)
 
 void spindleStart(void)
 {
- ld(F_Ld_Out_Reg, OUT_PIN14);
- ld(F_PWM_Base + F_Ld_PWM_Max, rVar.rPwmDiv);
- ld(F_PWM_Base + F_Ld_PWM_Trig, rVar.rPwmCtr);
+ if (rVar.rStepDrv)
+ {
+  spLoad(RP_SP_RUN);
+
+  ld(F_Spindle_Base + F_Ld_Sp_Scale, rVar.rSpStepMult);
+  ld(F_Phase_Base + F_Ld_Phase_Len, rVar.rEncPerRev);
+
+  // ld(F_Ld_Cfg_Ctl, CFG_GEN_SYNC);
+
+  ld(F_Ld_Sync_Ctl, SYN_PHASE_INIT);
+  ld(F_Ld_Sync_Ctl, 0);
+
+  ld(F_Spindle_Base + F_Ld_Sp_Ctl, SP_INIT);
+  const int spCtl = SP_ENA;
+  ld(F_Spindle_Base + F_Ld_Sp_Ctl, spCtl);
+ }
+ else
+ {
+  ld(F_Ld_Out_Reg, OUT_PIN14);
+  ld(F_PWM_Base + F_Ld_PWM_Max, rVar.rPwmDiv);
+  ld(F_PWM_Base + F_Ld_PWM_Trig, rVar.rPwmCtr);
+ }
 }
 
 void spindleStop(void)
 {
- ld(F_Ld_Out_Reg, 0);
- ld(F_PWM_Base + F_Ld_PWM_Max, 0);
- ld(F_PWM_Base + F_Ld_PWM_Trig, 0);
+ if (rVar.rStepDrv)
+ {
+  ld(F_Spindle_Base + F_Ld_Sp_Ctl, 0);
+ }
+ else
+ {
+  ld(F_Ld_Out_Reg, 0);
+  ld(F_PWM_Base + F_Ld_PWM_Max, 0);
+  ld(F_PWM_Base + F_Ld_PWM_Trig, 0);
+ }
 }
 
 void spindleUpdate(void)
 {
- ld(F_PWM_Base + F_Ld_PWM_Trig, rVar.rPwmCtr);
+ if (rVar.rStepDrv)
+ {
+ }
+ else
+ {
+  ld(F_PWM_Base + F_Ld_PWM_Trig, rVar.rPwmCtr);
+ }
 }
 
 void configSetup(void)
@@ -939,6 +997,9 @@ void saveAccel(const int type, const int val)
   break;
  case RP_ACCEL_COUNT:
   accel->accelCount = val;
+  break;
+ case RP_ACCEL_MAX:
+  accel->accelMax = val;
   break;
  case RP_FREQ_DIV:
   accel->freqDiv = val;

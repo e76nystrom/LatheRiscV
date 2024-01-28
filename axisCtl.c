@@ -39,7 +39,11 @@ typedef struct S_ACCEL_DATA
  int incr1;
  int incr2;
  int accelVal;
- int accelCount;
+ union
+ {
+  int accelCount;
+  int accelMax;
+ };
  int freqDiv;
 } T_ACCEL_DATA, *P_ACCEL_DATA;
 
@@ -54,6 +58,9 @@ EXT T_ACCEL_DATA xTaper;
 EXT T_ACCEL_DATA xMove;
 EXT T_ACCEL_DATA xJog;
 EXT T_ACCEL_DATA xSlow;
+
+EXT T_ACCEL_DATA spRun;
+EXT T_ACCEL_DATA spJog;
 
 EXT P_ACCEL_DATA accelData[RP_MAX];
 
@@ -176,6 +183,7 @@ void axisMove(P_AXIS_CTL axis);
 void axisHome(P_AXIS_CTL axis, int homeCmd);
 void clockLoad(P_AXIS_CTL axis, int clkSel);
 void axisLoad(P_AXIS_CTL axis, int index);
+void spLoad(const int index);
 
 #endif	/* AXIS_CTL_INCLUDE */ // ->
 #if defined(LATHECPP_AXIS_CTL)
@@ -421,6 +429,9 @@ void initAccelTable(void)
  accelData[RP_X_MOVE]  = &xMove;
  accelData[RP_X_JOG]   = &xJog;
  accelData[RP_X_SLOW]  = &xSlow;
+
+ accelData[RP_SP_RUN]  = &spRun;
+ accelData[RP_SP_JOG]  = &spJog;
 }
 
 T_AXIS_CONSTANT zInitData =
@@ -514,18 +525,24 @@ void axisCtl(void)
  delta = t - indexData.lastTime;
  if (delta > INDEX_INTERVAL)
  {
-  // dbgPutC('.');
-  // dbgPutHex(delta, 4);
   indexData.lastTime = t;
   uint32_t clocks = rd(F_Index_Base + F_Rd_Index_Clks);
-  indexData.clocks = clocks;
-  if (clocks != 0)
+  if (clocks != indexData.clocks)
   {
-   clocks /= 60;
-   indexData.rpm = FPGA_FREQUENCY / clocks;
+   indexData.clocks = clocks;
+   if (dbg3I) {
+    dbgPutStr("clks ");
+    dbgPutInt(clocks);
+    dbgNewLine(); }
+   
+   if (clocks != 0)
+   {
+    clocks /= 60;
+    indexData.rpm = FPGA_FREQUENCY / clocks;
+   }
+   else
+    indexData.rpm = 0;
   }
-  else
-   indexData.rpm = 0;
  }
 
  if (rVar.rMvStatus != lastMvStatus)
@@ -1545,6 +1562,24 @@ void axisLoad(const P_AXIS_CTL axis, const int index)
  ld(base + F_Sync_Base + F_Ld_Dist, dist);
  ld(base + F_Ld_Axis_Ctl, CTL_INIT);
  ld(base + F_Ld_Axis_Ctl, 0);
+}
+
+void spLoad(const int index)
+{
+ if (dbg3) {  
+  dbgSelPrt(index, " spLoad", &axisAccelTypeStr[index].c0); }
+
+ const P_ACCEL_DATA aData = accelData[index];
+
+ ld(F_Spindle_Base + F_Ld_Sp_Freq, aData->freqDiv);
+ ld(F_Spindle_Base + F_Ld_Sp_Scale, rVar.rSpStepMult);
+
+ ld(F_Spindle_Base + F_Sp_Sync_Base + F_Ld_D, aData->initialSum);
+ ld(F_Spindle_Base + F_Sp_Sync_Base + F_Ld_Incr1, aData->incr1);
+ ld(F_Spindle_Base + F_Sp_Sync_Base + F_Ld_Incr2, aData->incr2);
+
+ ld(F_Spindle_Base + F_Sp_Sync_Base + F_Ld_Accel_Val, aData->accelVal);
+ ld(F_Spindle_Base + F_Sp_Sync_Base + F_Ld_Accel_Count, aData->accelCount);
 }
 
 #endif  /* LATHECPP_AXIS_CTL */

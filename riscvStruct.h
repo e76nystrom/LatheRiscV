@@ -32,18 +32,21 @@ typedef struct sRiscvVar
  int rJogPause;         /* 0x01 R_JOG_PAUSE      jog pause */
  int rCurPass;          /* 0x02 R_CUR_PASS       current pass */
  int rCfgVal;           /* 0x03 R_CFG_VAL        fpga configuration value */
- int rPRpm;             /* 0x04 R_P_RPM          spindle rpm */
+ int rSpRpm;            /* 0x04 R_SP_RPM         spindle rpm */
  int rPwmDiv;           /* 0x05 R_PWM_DIV        pwm divider */
  int rPwmCtr;           /* 0x06 R_PWM_CTR        pwm counter max */
  int rSynEncPreScaler;  /* 0x07 R_SYN_ENC_PRE_SCALER encoder prescaler */
  int rSynEncCycle;      /* 0x08 R_SYN_ENC_CYCLE  encoder cycle len */
  int rSynOutCycle;      /* 0x09 R_SYN_OUT_CYCLE  output cycle len */
- int rTurnSync;         /* 0x0a R_TURN_SYNC      turn sync */
- int rThreadSync;       /* 0x0b R_THREAD_SYNC    thread sync */
- int rRunoutSync;       /* 0x0c R_RUNOUT_SYNC    runout sync */
- int rThreadFlags;      /* 0x0d R_THREAD_FLAGS   threading flags */
- int rRunoutDist;       /* 0x0e R_RUNOUT_DIST    runout distance */
- int rRunoutDepth;      /* 0x0f R_RUNOUT_DEPTH   runout depth */
+ int rStepDrv;          /* 0x0a R_STEP_DRV       stepper drive */
+ int rEncPerRev;        /* 0x0b R_ENC_PER_REV    spindle encoder count */
+ int rSpStepMult;       /* 0x0c R_SP_STEP_MULT   spindle step multiplier */
+ int rTurnSync;         /* 0x0d R_TURN_SYNC      turn sync */
+ int rThreadSync;       /* 0x0e R_THREAD_SYNC    thread sync */
+ int rRunoutSync;       /* 0x0f R_RUNOUT_SYNC    runout sync */
+ int rThreadFlags;      /* 0x10 R_THREAD_FLAGS   threading flags */
+ int rRunoutDist;       /* 0x11 R_RUNOUT_DIST    runout distance */
+ int rRunoutDepth;      /* 0x12 R_RUNOUT_DEPTH   runout depth */
 } T_RISCV_VAR, *P_RISCV_VAR;
 
 typedef struct

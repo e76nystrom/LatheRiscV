@@ -22,7 +22,11 @@ typedef struct S_ACCEL_DATA
  int incr1;
  int incr2;
  int accelVal;
- int accelCount;
+ union
+ {
+  int accelCount;
+  int accelMax;
+ };
  int freqDiv;
 } T_ACCEL_DATA, *P_ACCEL_DATA;
 
@@ -37,6 +41,9 @@ EXT T_ACCEL_DATA xTaper;
 EXT T_ACCEL_DATA xMove;
 EXT T_ACCEL_DATA xJog;
 EXT T_ACCEL_DATA xSlow;
+
+EXT T_ACCEL_DATA spRun;
+EXT T_ACCEL_DATA spJog;
 
 EXT P_ACCEL_DATA accelData[RP_MAX];
 
@@ -159,5 +166,6 @@ void axisMove(P_AXIS_CTL axis);
 void axisHome(P_AXIS_CTL axis, int homeCmd);
 void clockLoad(P_AXIS_CTL axis, int clkSel);
 void axisLoad(P_AXIS_CTL axis, int index);
+void spLoad(const int index);
 
 #endif  /* AXIS_CTL_INC */	// ->
